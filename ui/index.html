@@ -137,12 +137,11 @@ aside {
 .dcard:hover { box-shadow: var(--border) 0 0 0 1px inset, 0 2px 8px rgba(15, 15, 15, .05); }
 .dcard .dtop { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13.5px; color: var(--text); }
 .dcard .dtop svg { color: var(--text-2); }
-.dcard .dkey { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--text-2); font-size: 13px; }
-.dcard .dkey kbd { font-size: 12.5px; height: 24px; display: inline-flex; align-items: center; padding: 0 9px; border-radius: 7px; background: var(--card); color: var(--text); box-shadow: var(--border) 0 0 0 1px inset, var(--border) 0 1.5px 0 0; }
-.dcard .dsys { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--divider); font-size: 12.5px; }
-.recsrc { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px; color: var(--text-2); font-size: 13px; }
-.recsrc .dd[disabled] { opacity: .55; pointer-events: none; }
-.dcard .dsub { color: var(--text-3); font-size: 12.5px; margin-top: 6px; line-height: 1.4; }
+.dcard .dkeys { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+.dcard .drow { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--text-2); font-size: 13px; min-width: 0; }
+.dcard .drow > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dcard .drow kbd { flex-shrink: 0; white-space: nowrap; font-family: inherit; font-size: 12px; height: 24px; display: inline-flex; align-items: center; padding: 0 9px; border-radius: 7px; background: var(--card); color: var(--text); box-shadow: var(--border) 0 0 0 1px inset, var(--border) 0 1.5px 0 0; }
+.dcard .dsub { color: var(--text-3); font-size: 12px; margin-top: 10px; line-height: 1.45; }
 .dcard[data-s=rec] { box-shadow: rgba(224, 62, 62, .45) 0 0 0 1.5px inset; }
 .dcard[data-s=rec] .dtop svg { color: var(--red); }
 
@@ -424,9 +423,11 @@ kbd { font: inherit; font-size: 11.5px; padding: 1px 6px; border-radius: 6px; ba
     <div class="upcard" id="upcard"><b>🎉 <span data-i="upDone"></span></b><small id="upText"></small><button class="btn primary" id="upRestart"></button></div>
     <div class="dcard" id="dcard" data-s="loading">
       <div class="dtop"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="5.5" y="1.5" width="5" height="8.5" rx="2.5"/><path d="M3 8a5 5 0 0 0 10 0M8 13v1.5"/></svg><span data-i="dictation"></span></div>
-      <div class="dkey"><span id="dHold"></span><kbd id="dKey"></kbd></div>
-      <div class="dsub" data-i="anyApp"></div>
-      <div class="dkey dsys" id="dSys"><span data-i="sysKey"></span><kbd id="dSysKey"></kbd></div>
+      <div class="dkeys">
+        <div class="drow"><span data-i="dMic"></span><kbd id="dKey"></kbd></div>
+        <div class="drow" id="dSys"><span data-i="dSysL"></span><kbd id="dSysKey"></kbd></div>
+      </div>
+      <div class="dsub" id="dHint"></div>
     </div>
   </aside>
 
@@ -452,7 +453,9 @@ const I18N = {
     navFiles: "Распознать файл", navHistory: "История диктовок", navDict: "Словарь", navSettings: "Настройки",
     transcripts: "Транскрипты", noTranscripts: "Здесь появятся распознанные файлы",
     st_loading: "Загрузка модели…", st_ready: "Готов", st_rec: "Запись…", st_busy: "Распознаю…", st_error: "Ошибка",
-    sysKey: "🔊 Звук компьютера", sysHotkey: "Клавиша для звука компьютера",
+    dMic: "Микрофон", dSysL: "Звук ПК",
+    hintHold: "Держите клавишу и говорите — текст вставится в любое окно.",
+    hintToggle: "Нажмите клавишу, говорите, нажмите снова — текст вставится в любое окно.", sysHotkey: "Клавиша для звука компьютера",
     sysHotkeyD: "Распознаёт то, что играет компьютер: Zoom, созвон, видео. Микрофон не пишется. Режим тот же, что у диктовки.",
     off: "Выключено", recSrc: "Источник", rsMic: "Микрофон", rsSystem: "Звук компьютера", rsBoth: "Микрофон + звук компьютера",
     srcBothD: "Для созвонов: ваш голос и собеседники. Лучше в наушниках — иначе колонки попадут в микрофон дважды.",
@@ -524,7 +527,9 @@ const I18N = {
     navFiles: "Transcribe file", navHistory: "Dictation history", navDict: "Dictionary", navSettings: "Settings",
     transcripts: "Transcripts", noTranscripts: "Transcribed files will appear here",
     st_loading: "Loading model…", st_ready: "Ready", st_rec: "Recording…", st_busy: "Transcribing…", st_error: "Error",
-    sysKey: "🔊 Computer sound", sysHotkey: "Computer sound key",
+    dMic: "Microphone", dSysL: "PC sound",
+    hintHold: "Hold a key and speak — the text is pasted into any app.",
+    hintToggle: "Press a key, speak, press again — the text is pasted into any app.", sysHotkey: "Computer sound key",
     sysHotkeyD: "Transcribes what the computer plays: Zoom, calls, videos. The microphone is not recorded. Same mode as dictation.",
     off: "Off", recSrc: "Source", rsMic: "Microphone", rsSystem: "Computer sound", rsBoth: "Microphone + computer sound",
     srcBothD: "For calls: your voice and the others. Best with headphones, otherwise speakers leak into the mic.",
@@ -687,7 +692,7 @@ function applyLang() {
   document.documentElement.lang = LANG;
   document.querySelectorAll("[data-i]").forEach((el) => el.textContent = t(el.dataset.i));
   const key = (I18N[LANG].keys[settings.hotkey] || settings.hotkey);
-  $("#dHold").textContent = settings.mode === "toggle" ? t("press") : t("hold");
+  $("#dHint").textContent = settings.mode === "toggle" ? t("hintToggle") : t("hintHold");
   $("#dKey").textContent = key;
   const sk = settings.hotkey_system;
   $("#dSys").style.display = sk && sk !== settings.hotkey ? "" : "none";
