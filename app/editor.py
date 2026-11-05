@@ -365,7 +365,9 @@ def _sane(src, out):
     if not out:
         return False
     ls, lo = len(src), len(out)
-    if lo < ls * 0.7 or lo > ls * 1.35 + 20:
+    # proportional limits for long text; a few characters of slack for short phrases
+    # (e.g. «о'кей» -> «окей» is 20% shorter but a perfectly good edit)
+    if lo < min(ls * 0.7, ls - 8) or lo > ls * 1.35 + 20:
         return False
     a = set(re.findall(r"[а-яё]{4,}", src.lower()))
     b = set(re.findall(r"[а-яё]{4,}", out.lower()))

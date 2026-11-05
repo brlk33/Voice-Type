@@ -9,3 +9,4 @@
 клод = Claude
 телеграм = Telegram
 ютуб = YouTube
+о'кей = окей
