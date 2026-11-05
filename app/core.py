@@ -170,6 +170,13 @@ class Dictionary:
 
 # ---------------------------------------------------------------- recognizer
 GIGAAM_URL = "https://cdn.chatwm.opensmodel.sberdevices.ru/GigaAM"
+# copy of the same files (MIT license) in this project's GitHub releases: some networks block
+# Sber's CDN completely. Files are checked against GigaAM's own checksums either way.
+GIGAAM_MIRROR = "https://github.com/brlk33/Voice-Type/releases/download/models"
+
+
+class NotFound(Exception):
+    pass
 
 
 def _md5(path):
@@ -195,6 +202,7 @@ def download(url, dest, progress=None, md5=None):
     Raises RuntimeError with all the reasons if nothing worked."""
     import shutil
     import subprocess
+    import urllib.error
     import urllib.request
     dest = Path(dest)
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -203,7 +211,13 @@ def download(url, dest, progress=None, md5=None):
 
     def via_urllib(ctx=None):
         req = urllib.request.Request(url, headers={"User-Agent": "VoiceType"})
-        with urllib.request.urlopen(req, timeout=60, context=ctx) as r, open(tmp, "wb") as f:
+        try:
+            r = urllib.request.urlopen(req, timeout=60, context=ctx)
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                raise NotFound(url)
+            raise
+        with r, open(tmp, "wb") as f:
             total = int(r.headers.get("Content-Length") or 0)
             got, last = 0, -1
             while True:
@@ -254,6 +268,8 @@ def download(url, dest, progress=None, md5=None):
                 if way is via_checksum:
                     log.info("%s: скачан без проверки сертификата, контрольная сумма совпала", dest.name)
                 return dest
+            except NotFound:
+                raise
             except Exception as e:
                 errors.append(f"{way.__name__[4:]}: {e}")
                 log.warning("Загрузка %s (%s, попытка %d): %s", url.rsplit("/", 1)[-1], way.__name__[4:], attempt + 1, e)
@@ -265,6 +281,19 @@ def download(url, dest, progress=None, md5=None):
     raise RuntimeError("download failed: " + " | ".join(errors[-3:]))
 
 
+def _from_any(fname, dest, progress, md5):
+    """GitHub mirror first (fast, rarely blocked), then Sber's CDN."""
+    errors = []
+    for base in (GIGAAM_MIRROR, GIGAAM_URL):
+        try:
+            return download(f"{base}/{fname}", dest, progress, md5=md5)
+        except NotFound:
+            log.info("%s: нет на %s", fname, base)
+        except Exception as e:
+            errors.append(str(e)[-300:])
+    raise RuntimeError("download failed: " + " | ".join(errors))
+
+
 def fetch_gigaam(name, models_dir, progress=None):
     """Make sure models/<name>.ckpt (and the tokenizer for e2e models) is on disk and intact."""
     import gigaam
@@ -272,11 +301,11 @@ def fetch_gigaam(name, models_dir, progress=None):
     ckpt = Path(models_dir) / f"{name}.ckpt"
     if not ckpt.exists():
         log.info("Скачиваю %s ...", ckpt.name)
-        download(f"{GIGAAM_URL}/{name}.ckpt", ckpt, progress, md5=hashes.get(name))
+        _from_any(f"{name}.ckpt", ckpt, progress, hashes.get(name))
     if "e2e" in name or name == "v1_rnnt":
         tok = Path(models_dir) / f"{name}_tokenizer.model"
         if not tok.exists():
-            download(f"{GIGAAM_URL}/{name}_tokenizer.model", tok, md5=EXTRA_MD5.get(tok.name))
+            _from_any(tok.name, tok, None, EXTRA_MD5.get(tok.name))
 
 
 class Recognizer:
