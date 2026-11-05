@@ -1,7 +1,7 @@
-"""Auto-update from GitHub releases.
+"""Auto-update from GitHub.
 
-On start the app asks GitHub for the latest release. If it is newer than version.txt,
-the release archive is downloaded and only program files are replaced: user data
+On start the app reads version.txt from the main branch on GitHub. If it is newer than the
+local version.txt, the archive of the main branch is downloaded and only program files are replaced: user data
 (config.json, dictionary.txt, history.txt, transcripts/, logs/, models/, .venv/, tools/)
 is never touched. New Python packages are installed automatically if requirements changed.
 The running program keeps working; the new version starts on the next launch or after
@@ -20,8 +20,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 REPO = "brlk33/Voice-Type"
-API = f"https://api.github.com/repos/{REPO}/releases/latest"
-UA = {"User-Agent": "VoiceType-updater", "Accept": "application/vnd.github+json"}
+BRANCH = "main"
+VERSION_URL = f"https://raw.githubusercontent.com/{REPO}/{BRANCH}/version.txt"
+ZIP_URL = f"https://codeload.github.com/{REPO}/zip/refs/heads/{BRANCH}"
+UA = {"User-Agent": "VoiceType-updater"}
 
 # files and folders the updater may replace (relative to the program folder)
 MANAGED_DIRS = ("app", "ui")
@@ -53,20 +55,18 @@ def is_newer(remote: str, local: str) -> bool:
 
 
 def latest_release(timeout=10):
-    """-> {"version", "zip", "notes", "url"} or None."""
-    req = urllib.request.Request(API, headers=UA)
+    """-> {"version", "zip", "notes", "url"} or None (version.txt of the main branch)."""
+    req = urllib.request.Request(VERSION_URL, headers=UA)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
-            data = json.loads(r.read().decode("utf-8"))
+            ver = r.read().decode("utf-8", "replace").strip()
     except urllib.error.HTTPError as e:
-        if e.code == 404:  # repository has no releases yet
+        if e.code == 404:
             return None
         raise
-    tag = data.get("tag_name") or ""
-    if not tag:
+    if not ver or not ver[0].isdigit():
         return None
-    return {"version": tag.lstrip("vV"), "zip": data.get("zipball_url"),
-            "notes": (data.get("body") or "")[:2000], "url": data.get("html_url")}
+    return {"version": ver, "zip": ZIP_URL, "notes": "", "url": f"https://github.com/{REPO}"}
 
 
 def _download(url, dest, timeout=60):
@@ -91,7 +91,7 @@ def _install_requirements():
 
 
 def apply_release(rel) -> dict:
-    """Download and install a release. Returns {"ok", "version", "deps"}."""
+    """Download and install the new version. Returns {"ok", "version", "deps"}."""
     work = Path(tempfile.mkdtemp(prefix="voicetype-update-"))
     try:
         zpath = work / "release.zip"
