@@ -451,7 +451,7 @@ const I18N = {
     st_loading: "Загрузка модели…", st_ready: "Готов", st_rec: "Запись…", st_busy: "Распознаю…", st_error: "Ошибка",
     sysKey: "🔊 Звук компьютера", sysHotkey: "Клавиша для звука компьютера",
     sysHotkeyD: "Распознаёт то, что играет компьютер: Zoom, созвон, видео. Микрофон не пишется. Режим тот же, что у диктовки.",
-    off: "Выключено", recSrc: "Источник", srcMic: "Микрофон", srcSystem: "Звук компьютера", srcBoth: "Микрофон + звук компьютера",
+    off: "Выключено", recSrc: "Источник", rsMic: "Микрофон", rsSystem: "Звук компьютера", rsBoth: "Микрофон + звук компьютера",
     srcBothD: "Для созвонов: ваш голос и собеседники. Лучше в наушниках — иначе колонки попадут в микрофон дважды.",
     hold: "Держите", press: "Нажмите", hintTail: "и говорите", dictation: "Диктовка", anyApp: "в любом окне и говорите — текст вставится сам",
     filesDesc: "Перетащите аудио или видео в это окно — текст появится здесь же, в разделе «Транскрипты».",
@@ -521,7 +521,7 @@ const I18N = {
     st_loading: "Loading model…", st_ready: "Ready", st_rec: "Recording…", st_busy: "Transcribing…", st_error: "Error",
     sysKey: "🔊 Computer sound", sysHotkey: "Computer sound key",
     sysHotkeyD: "Transcribes what the computer plays: Zoom, calls, videos. The microphone is not recorded. Same mode as dictation.",
-    off: "Off", recSrc: "Source", srcMic: "Microphone", srcSystem: "Computer sound", srcBoth: "Microphone + computer sound",
+    off: "Off", recSrc: "Source", rsMic: "Microphone", rsSystem: "Computer sound", rsBoth: "Microphone + computer sound",
     srcBothD: "For calls: your voice and the others. Best with headphones, otherwise speakers leak into the mic.",
     hold: "Hold", press: "Press", hintTail: "and speak", dictation: "Dictation", anyApp: "in any app and speak — the text is pasted for you",
     filesDesc: "Drop audio or video into this window — the text will appear right here, under Transcripts.",
@@ -827,7 +827,7 @@ async function pageTranscript(id) {
         <div class="prop"><div class="pk">${IC.cpu}${t("pLink")}</div><div class="pv link" id="ytlink" title="${esc(tr.source)}"><span>${esc(tr.source)}</span></div></div>` : `
         <div class="prop"><div class="pk">${IC.file}${t("pSource")}</div>${tr.source
           ? `<div class="pv link" id="src" title="${esc(tr.source)}"><span>${esc(tr.source)}</span></div>`
-          : `<div class="pv"><span>🎙️ ${t("srcMic")}</span></div>`}</div>
+          : `<div class="pv"><span>${tr.kind === "system" ? "🔊 " + t("rsSystem") : tr.kind === "both" ? "🎙️🔊 " + t("rsBoth") : "🎙️ " + t("srcMic")}</span></div>`}</div>
         <div class="prop"><div class="pk">${IC.cpu}${t("pModel")}</div><div class="pv"><span>GigaAM ${esc(tr.model || "")}</span></div></div>`}
       </div>
       <div class="hr"></div>
@@ -1014,7 +1014,7 @@ async function pageRecord() {
   if (rec.state !== "idle") startPolling();
 }
 function recSources() {
-  return [{v: "mic", label: t("srcMic")}, {v: "system", label: t("srcSystem")}, {v: "both", label: t("srcBoth")}];
+  return [{v: "mic", label: t("rsMic")}, {v: "system", label: t("rsSystem")}, {v: "both", label: t("rsBoth")}];
 }
 function paintSrc() {
   const dd = $("#recSrcDd"); if (!dd) return;

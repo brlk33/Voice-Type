@@ -73,18 +73,18 @@ class Capture:
     # ------------------------------------------------------------ system sound
     def _system_loop(self, ready):
         try:
-            import ctypes
-            ctypes.windll.ole32.CoInitializeEx(None, 0)  # COM for this thread (MTA)
-        except Exception:
-            pass
-        try:
             import warnings
-            import soundcard as sc
+            import soundcard as sc  # first import initializes COM in this thread itself
             warnings.filterwarnings("ignore", module="soundcard")
         except Exception as e:
             self._sys_error = f"soundcard: {e}"
             ready.set()
             return
+        try:  # later recordings run in new threads: COM must be initialized there too
+            import ctypes
+            ctypes.windll.ole32.CoInitializeEx(None, 0)
+        except Exception:
+            pass
         first = True
         while self._running:
             try:
