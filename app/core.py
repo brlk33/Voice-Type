@@ -180,11 +180,18 @@ def _md5(path):
     return h.hexdigest()
 
 
-def download(url, dest, progress=None):
+# checksums of files GigaAM's package doesn't pin itself (taken from known-good downloads)
+EXTRA_MD5 = {"v3_e2e_rnnt_tokenizer.model": "3b3bf8370e882885d79731592fc99f98"}
+
+
+def download(url, dest, progress=None, md5=None):
     """Download with fallbacks. Python's TLS can fail where Windows' own stack works
     (antivirus / VPN inspecting traffic, old certificate chains), so if urllib fails we
     try curl.exe (built into Windows 10+, uses the Windows certificate store) and then
-    PowerShell. Raises RuntimeError with all the reasons if nothing worked."""
+    PowerShell. If every way fails on the certificate and the file's checksum is known, it is
+    downloaded once more without certificate checks and kept only if the checksum matches,
+    so the file is exactly the official one whatever the network did to TLS.
+    Raises RuntimeError with all the reasons if nothing worked."""
     import shutil
     import subprocess
     import urllib.request
@@ -193,9 +200,9 @@ def download(url, dest, progress=None):
     tmp = dest.with_suffix(dest.suffix + ".part")
     errors = []
 
-    def via_urllib():
+    def via_urllib(ctx=None):
         req = urllib.request.Request(url, headers={"User-Agent": "VoiceType"})
-        with urllib.request.urlopen(req, timeout=60) as r, open(tmp, "wb") as f:
+        with urllib.request.urlopen(req, timeout=60, context=ctx) as r, open(tmp, "wb") as f:
             total = int(r.headers.get("Content-Length") or 0)
             got, last = 0, -1
             while True:
@@ -213,7 +220,7 @@ def download(url, dest, progress=None):
         curl = shutil.which("curl.exe") or os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32", "curl.exe")
         if not os.path.exists(curl):
             raise RuntimeError("curl.exe not found")
-        r = subprocess.run([curl, "-fL", "--retry", "3", "--ssl-no-revoke", "-o", str(tmp), url],
+        r = subprocess.run([curl, "-fsSL", "--retry", "3", "--ssl-no-revoke", "-o", str(tmp), url],
                            capture_output=True, text=True, creationflags=0x08000000 if os.name == "nt" else 0)
         if r.returncode != 0:
             raise RuntimeError((r.stderr or "").strip()[-300:] or f"curl exit {r.returncode}")
@@ -227,12 +234,24 @@ def download(url, dest, progress=None):
         if r.returncode != 0:
             raise RuntimeError((r.stderr or "").strip()[-300:])
 
+    def via_checksum():
+        import ssl
+        via_urllib(ssl._create_unverified_context())
+
     ways = [via_urllib] + ([via_curl, via_powershell] if os.name == "nt" else [])
+    if md5:
+        ways.append(via_checksum)
     for way in ways:
-        for attempt in range(2):
+        for attempt in range(3 if way is via_checksum else 2):
             try:
                 way()
+                if md5:
+                    got = _md5(tmp)
+                    if got != md5:
+                        raise RuntimeError(f"checksum mismatch ({got})")
                 os.replace(tmp, dest)
+                if way is via_checksum:
+                    log.info("%s: скачан без проверки сертификата, контрольная сумма совпала", dest.name)
                 return dest
             except Exception as e:
                 errors.append(f"{way.__name__[4:]}: {e}")
@@ -252,14 +271,11 @@ def fetch_gigaam(name, models_dir, progress=None):
     ckpt = Path(models_dir) / f"{name}.ckpt"
     if not ckpt.exists():
         log.info("Скачиваю %s ...", ckpt.name)
-        download(f"{GIGAAM_URL}/{name}.ckpt", ckpt, progress)
-        if hashes.get(name) and _md5(ckpt) != hashes[name]:
-            ckpt.unlink()
-            raise RuntimeError(f"{ckpt.name}: checksum mismatch (download was damaged)")
+        download(f"{GIGAAM_URL}/{name}.ckpt", ckpt, progress, md5=hashes.get(name))
     if "e2e" in name or name == "v1_rnnt":
         tok = Path(models_dir) / f"{name}_tokenizer.model"
         if not tok.exists():
-            download(f"{GIGAAM_URL}/{name}_tokenizer.model", tok)
+            download(f"{GIGAAM_URL}/{name}_tokenizer.model", tok, md5=EXTRA_MD5.get(tok.name))
 
 
 class Recognizer:
