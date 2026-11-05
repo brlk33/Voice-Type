@@ -16,6 +16,7 @@ import core  # noqa: E402
 import editor  # noqa: E402
 import mystyle  # noqa: E402
 import slim  # noqa: E402
+import english  # noqa: E402
 
 core.setup_logging("app")
 log = core.log
@@ -146,16 +147,28 @@ class Engine:
             self.rec = core.Recognizer(self.cfg)
             self.kb.Listener(on_press=self.on_press, on_release=self.on_release).start()
             self.set_state("ready")
+            self.load_english()
         except Exception as e:
             log.exception("Ошибка загрузки")
             self.set_state("error", str(e))
             message_box(f"Не удалось загрузить распознавание:\n{e}\n\nПодробности в logs\\app.log")
+
+    def load_english(self):
+        """Load the optional English model (if installed) into the recognizer."""
+        if self.rec is None or self.rec.english is not None or not english.installed():
+            return
+        try:
+            self.rec.english = english.English(self.rec.device)
+            self.rec.lang_mode = self.cfg.get("lang_mode", "auto")
+        except Exception:
+            log.exception("Английская модель не загрузилась")
 
     def reload_model(self, name):
         def work():
             self.set_state("loading")
             try:
                 new = core.Recognizer(dict(self.cfg, model=name))
+                new.english, new.lang_mode = self.rec.english, self.rec.lang_mode
                 old, self.rec = self.rec, new
                 del old
                 import torch
@@ -849,6 +862,37 @@ class Api:
             editor.ensure_cuda_runtime()
         except Exception:
             log.exception("Очистка")
+
+    # ------------- optional English model
+    def english_status(self):
+        st = english.status()
+        rec = self._engine.rec
+        st["loaded"] = bool(rec and rec.english)
+        st["mode"] = self._engine.cfg.get("lang_mode", "auto")
+        return st
+
+    def english_install(self):
+        def done():
+            self._engine.load_english()
+            self._js("vt.onEnglish()")
+        english.install_async(done)
+        return True
+
+    def english_mode(self, mode):
+        self.save_settings({"lang_mode": mode})
+        if self._engine.rec:
+            self._engine.rec.lang_mode = mode
+        return True
+
+    def english_remove(self):
+        rec = self._engine.rec
+        loaded = bool(rec and rec.english)
+        if rec:
+            rec.english = None
+        res = english.remove(loaded=loaded or "faster_whisper" in sys.modules)
+        if res == "later":
+            self.save_settings({"english_purge": True})
+        return res
 
     # ------------- graphics card acceleration
     def gpu_status(self):
@@ -1604,6 +1648,9 @@ def main():
 
     api = Api()
     cfg = api._engine.cfg
+    if cfg.get("english_purge"):  # English model was removed while loaded: drop the package now
+        english.purge_package()
+        api.save_settings({"english_purge": False})
     dark = cfg.get("theme") == "dark" or (cfg.get("theme", "system") == "system" and system_dark())
     window = webview.create_window(
         "VoiceType", url=str(core.ROOT / "ui" / "index.html"), js_api=api,

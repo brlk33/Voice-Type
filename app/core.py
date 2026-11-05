@@ -53,6 +53,7 @@ DEFAULT_CONFIG = {
                      "Adobe", "Alt+Tab", "Ctrl", "Shift", "FPS", "YouTube", "Telegram", "Notion"],
     "mini_pos": None,
     "auto_update": True,
+    "lang_mode": "auto",  # with the English model installed: ru | auto | en
 }
 
 
@@ -311,6 +312,8 @@ class Recognizer:
                 + (f"  {GIGAAM_URL}/{wanted}_tokenizer.model\n" if "e2e" in wanted else "")
                 + f"и положить в папку {models_dir}, затем запустить установку снова.")
         self._lock = threading.Lock()
+        self.english = None     # english.English, when the optional model is installed
+        self.lang_mode = "ru"   # ru | auto | en
         self._vad = None
         self._vad_lock = threading.Lock()
         log.info("Модель %s готова на %s", self.model_name, dev)
@@ -319,6 +322,16 @@ class Recognizer:
     def _recognize_short(self, audio: np.ndarray) -> str:
         if len(audio) < SR // 4:
             return ""
+        en = self.english
+        if en is not None and self.lang_mode in ("auto", "en"):
+            with self._lock:
+                try:
+                    if self.lang_mode == "en" or en.is_english(audio):
+                        text = en.transcribe(audio)
+                        if text:
+                            return text
+                except Exception:
+                    log.exception("Английская модель")
         torch = self.torch
         m = self.model
         with self._lock, torch.inference_mode():

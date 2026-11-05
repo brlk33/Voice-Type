@@ -571,6 +571,13 @@ const I18N = {
     upDone: "Обновление установлено", upRestart: "Перезапустить", upBanner: "Установлена версия", upRecBusy: "Сначала завершите запись",
     upDeps: "Не все библиотеки обновились — запустите update.bat",
     sEditor: "Редактор", edT: "Модель-редактор", edD: "Нейросеть на видеокарте исправляет английские названия (After Effects, Figma, Alt+Tab), ошибки распознавания и пунктуацию — ваши слова не меняет.",
+    enT: "Английский язык", enInstall: "Установить · {gb} ГБ",
+    enD: "Отдельная модель {m} для английской речи. Программа сама определяет язык каждой фразы между паузами: русские распознаёт GigaAM, английские — Whisper. Не установлена по умолчанию.",
+    enOn: "Установлено · {m}. Язык каждой фразы определяется сам: русские — GigaAM, английские — Whisper.",
+    enMode: "Язык речи", enModeRu: "Только русский", enModeAuto: "Русский + английский", enModeEn: "Только английский",
+    enModeD: "«Русский + английский» добавляет ~0,1–0,5 с на каждую фразу — на проверку языка.",
+    enRemove: "Удалить", enRemoved: "Английская модель удалена", enLater: "Модель удалена; библиотека удалится при следующем запуске",
+    enInstalling: "Скачиваю", enErr: "Не удалось установить",
     gpuT: "Ускорение на видеокарте",
     gpuOn: "Включено · {gpu}. Распознавание идёт на видеокарте — длинные файлы обрабатываются в разы быстрее.",
     gpuOnIdle: "Установлено, но видеокарта NVIDIA сейчас не найдена — распознаёт процессор.",
@@ -670,6 +677,13 @@ const I18N = {
     upDone: "Update installed", upRestart: "Restart", upBanner: "Installed version", upRecBusy: "Finish the recording first",
     upDeps: "Some libraries didn't update — run update.bat",
     sEditor: "Editor", edT: "Editor model", edD: "A small neural network on your GPU fixes English names (After Effects, Figma, Alt+Tab), mistakes and punctuation. It doesn't rephrase.",
+    enT: "English", enInstall: "Install · {gb} GB",
+    enD: "A separate {m} model for English speech. The app detects the language of every phrase between pauses: Russian goes to GigaAM, English to Whisper. Not installed by default.",
+    enOn: "Installed · {m}. Each phrase's language is detected automatically: Russian — GigaAM, English — Whisper.",
+    enMode: "Speech language", enModeRu: "Russian only", enModeAuto: "Russian + English", enModeEn: "English only",
+    enModeD: "“Russian + English” adds ~0.1–0.5 s per phrase to check the language.",
+    enRemove: "Remove", enRemoved: "English model removed", enLater: "Model removed; the library goes away on the next start",
+    enInstalling: "Downloading", enErr: "Couldn't install",
     gpuT: "Graphics card acceleration",
     gpuOn: "On · {gpu}. Recognition runs on the graphics card — long files are processed several times faster.",
     gpuOnIdle: "Installed, but no NVIDIA card is found right now — the processor is used.",
@@ -745,6 +759,7 @@ window.vt = {
   async onTranscripts() { await loadTrs(); },
   onHistory(item) { if (page === "history") renderPage(); },
   onEditor() { if (page === "settings") renderEditor(); },
+  onEnglish() { if (page === "settings") renderEnglish(); },
   onUpdate(r) {
     $("#upText").textContent = `${t("upBanner")} ${r.latest}` + (r.deps === false ? ` · ${t("upDeps")}` : "");
     $("#upRestart").textContent = t("upRestart");
@@ -1381,7 +1396,7 @@ async function pageSettings() {
       <h3>${t("sEditor")}</h3>
       <div class="card" id="edCard"></div>
       <h3>${t("sRecognition")}</h3>
-      <div class="card">${row(t("model"), t("modelD"), ddHtml("s-model", D.model, settings.model))}<div id="gpuRow"></div></div>
+      <div class="card">${row(t("model"), t("modelD"), ddHtml("s-model", D.model, settings.model))}<div id="gpuRow"></div><div id="enRow"></div></div>
       <h3>${t("sAppearance")}</h3>
       <div class="card">
         ${row(t("lang"), "", ddHtml("s-lang", D.lang, settings.ui_lang))}
@@ -1432,6 +1447,7 @@ async function pageSettings() {
   renderEditor();
   renderMyStyle();
   renderGpu();
+  renderEnglish();
   const bindTog = (id, key) => $("#" + id).onchange = (e) => set(key, e.target.checked);
   ddBind("s-lp", D.lp, (v) => set("long_paragraphs", v));
   bindTog("s-clean", "clean"); bindTog("s-fill", "clean_fillers");
@@ -1449,6 +1465,44 @@ async function pageSettings() {
 
 /* ---------- editor model card ---------- */
 let edPoll = null;
+/* ---------- optional English model ---------- */
+let enPoll = null;
+async function renderEnglish() {
+  const box = $("#enRow"); if (!box) return;
+  const st = await api.english_status();
+  if (!$("#enRow")) return;
+  const sep = "box-shadow: var(--divider) 0 1px 0 0 inset";
+  const gb = (n) => (n / 1e9).toLocaleString(LANG, {maximumFractionDigits: 1});
+  if (st.running) {
+    box.innerHTML = `<div class="srow" style="${sep}"><div class="sl"><b>${t("enT")}</b><small>${t("enInstalling")} ${esc(st.label || st.plan.model)} · ${Math.round(st.progress * 100)}%</small>
+      <div class="edbar"><i style="width:${Math.round(st.progress * 100)}%"></i></div></div></div>`;
+    if (!enPoll) enPoll = setInterval(() => { if (page !== "settings") { clearInterval(enPoll); enPoll = null; return; } renderEnglish(); }, 700);
+    return;
+  }
+  if (enPoll) { clearInterval(enPoll); enPoll = null; }
+  if (!st.installed) {
+    box.innerHTML = `<div class="srow" style="${sep}"><div class="sl"><b>${t("enT")}</b><small>${t("enD").replace("{m}", esc(st.plan.model))}${st.error ? `<br><span style="color:var(--red)">${t("enErr")}: ${esc(st.error)}</span>` : ""}</small></div>
+      <button class="btn secondary" id="enInstall">${t("enInstall").replace("{gb}", gb(st.plan.size))}</button></div>`;
+    $("#enInstall").onclick = async () => { await api.english_install(); setTimeout(renderEnglish, 300); };
+    return;
+  }
+  const M = [{v: "ru", label: t("enModeRu")}, {v: "auto", label: t("enModeAuto")}, {v: "en", label: t("enModeEn")}];
+  box.innerHTML = `<div class="srow" style="${sep}"><div class="sl"><b>${t("enT")}</b><small>${t("enOn").replace("{m}", esc(st.model))}</small></div>
+      <button class="btn secondary danger" id="enRemove"><span>${t("enRemove")} · ${gb(st.size)} ${LANG === "ru" ? "ГБ" : "GB"}</span></button></div>
+    <div class="srow"><div class="sl"><b>${t("enMode")}</b><small>${t("enModeD")}</small></div>${ddHtml("enModeDd", M, st.mode)}</div>`;
+  ddBind("enModeDd", M, (v) => api.english_mode(v));
+  $("#enRemove").onclick = async () => {
+    const b = $("#enRemove");
+    if (!b.dataset.armed) {
+      b.dataset.armed = "1"; const old = b.querySelector("span").textContent; b.querySelector("span").textContent = t("gpuSure");
+      setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.querySelector("span").textContent = old; } }, 3000);
+      return;
+    }
+    const r = await api.english_remove();
+    toast(r === "later" ? t("enLater") : t("enRemoved")); renderEnglish();
+  };
+}
+
 /* ---------- graphics card acceleration ---------- */
 async function renderGpu() {
   const box = $("#gpuRow"); if (!box) return;
