@@ -309,12 +309,17 @@ EXAMPLES = [
 ]
 
 
-def _messages(text, terms):
+def _messages(text, terms, style=None):
+    """style: {"prompt": extra instructions, "fmt": fn(text) -> text in the user's manner}"""
     sys = SYSTEM
     if terms:
         sys += "\n\nСловарь пользователя (пиши эти слова именно так): " + ", ".join(terms)
+    if style:
+        sys += style["prompt"]
     msgs = [{"role": "system", "content": sys}]
     for a, b in EXAMPLES:
+        if style:  # show the examples already formatted the user's way
+            b = style["fmt"](b)
         msgs += [{"role": "user", "content": a}, {"role": "assistant", "content": b}]
     msgs.append({"role": "user", "content": text})
     return msgs
@@ -358,7 +363,7 @@ def _split(text, limit=900):
     return out
 
 
-def edit(text: str, terms=()) -> str:
+def edit(text: str, terms=(), style=None) -> str:
     """Return the corrected text, or the original if the editor is missing or misbehaves."""
     text = (text or "").strip()
     if not text or not installed():
@@ -366,7 +371,7 @@ def edit(text: str, terms=()) -> str:
     out = []
     for piece in _split(text):
         try:
-            res = SERVER.chat(_messages(piece, list(terms)), max_tokens=int(len(piece) * 0.8) + 64).strip()
+            res = SERVER.chat(_messages(piece, list(terms), style), max_tokens=int(len(piece) * 0.8) + 64).strip()
             res = re.sub(r"^(исправленный текст|ответ)\s*:\s*", "", res, flags=re.I).strip().strip("«»\"")
             out.append(res if _sane(piece, res) else piece)
             if not _sane(piece, res):

@@ -13,6 +13,7 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import core  # noqa: E402
 import editor  # noqa: E402
+import mystyle  # noqa: E402
 
 core.setup_logging("app")
 log = core.log
@@ -115,6 +116,17 @@ class Engine:
     def editor_on(self, mode):
         """mode: dictation | recording | files | youtube"""
         return bool(self.cfg.get("editor")) and bool(self.cfg.get("editor_" + mode, True)) and editor.installed()
+
+    def my_style(self):
+        """The writing-style profile, re-read only when the file changes."""
+        try:
+            m = mystyle.PROFILE.stat().st_mtime
+        except OSError:
+            self._ms = (None, None)
+            return None
+        if getattr(self, "_ms", (None, None))[0] != m:
+            self._ms = (m, mystyle.load())
+        return self._ms[1]
 
     def editor_terms(self):
         terms = [t.strip() for t in self.cfg.get("editor_terms", []) if t.strip()]
@@ -278,11 +290,18 @@ class Engine:
             paras = [self.dic.apply(p).strip() for p in paras]
             if clean:
                 paras = [core.clean_text(p, fill) for p in paras]
+            prof = self.my_style() if style == "mine" else None
             if self.editor_on("dictation"):
                 t1 = time.time()
-                paras = [editor.edit(p, self.editor_terms()) for p in paras]
+                st = None
+                if prof:
+                    st = {"prompt": mystyle.editor_prompt(prof), "fmt": lambda x: mystyle.apply(x, prof, protect)}
+                paras = [editor.edit(p, self.editor_terms(), st) for p in paras]
                 log.info("Редактор (диктовка): %.2f с", time.time() - t1)
-            paras = [core.apply_style(p, style, protect) for p in paras]
+            if style == "mine":
+                paras = [mystyle.apply(p, prof, protect) for p in paras]
+            else:
+                paras = [core.apply_style(p, style, protect) for p in paras]
             text = "\n\n".join(p for p in paras if p)
             log.info("Диктовка %.1f с -> %.2f с: %s", len(audio) / core.SR, time.time() - t, text)
             if text:
@@ -881,6 +900,58 @@ class Api:
 
     def get_state(self):
         return {"state": self._engine.state, "detail": self._engine.detail}
+
+    # ------------- my writing style
+    def mystyle_status(self):
+        prof = self._engine.my_style()
+        if not prof:
+            return {"exists": False}
+        return {"exists": True, "stats": prof["stats"], "samples": len(prof["samples"]),
+                "habits": mystyle.describe(prof, self._engine.cfg.get("ui_lang", "ru"))}
+
+    def mystyle_pick(self):
+        """Choose chat export files -> list of senders to pick yourself from."""
+        import webview
+        paths = self._window.create_file_dialog(
+            webview.OPEN_DIALOG, allow_multiple=True,
+            file_types=("Telegram / WhatsApp (*.json;*.html;*.htm;*.txt)", f"{self._engine.s('all')} (*.*)"))
+        if not paths:
+            return {"cancel": True}
+        try:
+            got = mystyle.read_files(list(paths))
+        except Exception as e:
+            log.exception("Мой стиль: импорт")
+            return {"error": str(e)[:200]}
+        self._ms_pending = got["messages"]
+        return {"senders": got["senders"][:12], "me": got["me"], "total": len(got["messages"])}
+
+    def mystyle_text(self, text):
+        self._ms_pending = [(None, t) for t in (text or "").splitlines() if t.strip()]
+        return self.mystyle_build(None)
+
+    def mystyle_build(self, sender):
+        msgs = getattr(self, "_ms_pending", None) or []
+        texts = [t for s, t in msgs if sender is None or s == sender]
+        try:
+            prof = mystyle.build(texts)
+        except ValueError:
+            return {"error": "few", "count": len(texts)}
+        mystyle.save(prof)
+        self._ms_pending = None
+        log.info("Мой стиль: профиль из %d сообщений", prof["stats"]["messages"])
+        if self._engine.cfg.get("style") != "mine":
+            self.save_settings({"style": "mine"})
+        return dict(self.mystyle_status(), ok=True)
+
+    def mystyle_preview(self, text):
+        prof = self._engine.my_style()
+        return mystyle.apply(text, prof, self._engine.dic.targets()) if prof else text
+
+    def mystyle_remove(self):
+        mystyle.remove()
+        if self._engine.cfg.get("style") == "mine":
+            self.save_settings({"style": "casual"})
+        return True
 
     # ------------- files in
     def pick_files(self):

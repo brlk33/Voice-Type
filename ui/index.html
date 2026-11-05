@@ -369,6 +369,28 @@ h3 { font-size: 13px; font-weight: 600; margin: 40px 0 12px 4px; color: var(--te
 .edres { margin-top: 10px; display: grid; grid-template-columns: 1fr; gap: 6px; }
 .edres div { padding: 10px 12px; border-radius: 10px; background: var(--bg); box-shadow: var(--divider) 0 0 0 1px inset; user-select: text; line-height: 1.55; }
 .edres b { display: block; font-size: 11.5px; color: var(--text-3); font-weight: 500; margin-bottom: 2px; }
+.mswho { display: flex; flex-wrap: wrap; gap: 8px; padding: 2px 14px 16px; }
+.mschip { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border: 0; border-radius: 10px; cursor: pointer; font: inherit; font-size: 13.5px;
+  background: var(--bg); color: var(--text); box-shadow: var(--border) 0 0 0 1px inset; transition: background .12s, box-shadow .12s; }
+.mschip:hover { background: var(--hover); box-shadow: var(--blue) 0 0 0 1.5px inset; }
+.mschip small { color: var(--text-3); font-size: 12px; }
+.mshow { margin: 2px 0 6px; font-size: 12.5px; color: var(--text-2); }
+.mshow summary { cursor: pointer; color: var(--text-2); width: max-content; }
+.mshow summary:hover { color: var(--text); }
+.mshow p { margin: 8px 0 4px; line-height: 1.6; color: var(--text-2); max-width: 560px; }
+.mslink:hover { color: var(--blue); }
+.msbtns { display: flex; gap: 8px; flex-shrink: 0; }
+.mshab { display: flex; flex-direction: column; padding: 0 14px 10px; max-width: 520px; }
+.mshab div { display: flex; align-items: center; gap: 8px; min-height: 30px; font-size: 13px; color: var(--text-3); }
+.mshab div.on { color: var(--text); }
+.mshab i { width: 16px; height: 16px; flex: none; display: grid; place-items: center; color: var(--blue); }
+.mshab i:empty::before { content: ""; width: 6px; height: 1.5px; border-radius: 1px; background: var(--text-3); opacity: .6; }
+.mshab i svg { width: 14px; height: 14px; }
+.mshab span { flex: 1; min-width: 0; }
+.mshab b { font-weight: 500; font-size: 12.5px; color: var(--text-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.msfoot { display: flex; gap: 8px; align-items: flex-start; padding: 12px 14px 14px; color: var(--text-3); font-size: 12.5px; line-height: 1.55; box-shadow: var(--divider) 0 1px 0 0 inset; }
+.msfoot svg { flex: none; margin-top: 3px; }
+
 .linkbtn { border: 0; background: none; color: var(--text-3); cursor: pointer; font-size: 12.5px; padding: 4px 0; }
 .linkbtn:hover { color: var(--red); }
 
@@ -489,6 +511,18 @@ const I18N = {
     autostart: "Запускать вместе с Windows", autostartD: "Тихо, в трей",
     keys: {ctrl_r: "Правый Ctrl", alt_r: "Правый Alt", shift_r: "Правый Shift", caps_lock: "Caps Lock", scroll_lock: "Scroll Lock", pause: "Pause", insert: "Insert", f8: "F8", f9: "F9", f10: "F10"},
     sStyle: "Стиль текста", style: "Стиль", styleD: "Как оформлять надиктованный текст. Названия и английские слова не меняются.",
+    stMine: "Мой стиль", sMyStyle: "Мой стиль переписки",
+    msT: "Научить программу вашему стилю", msD: "Загрузите свою переписку — программа посмотрит, как вы пишете: заглавные буквы, точки, запятые, КАПС, скобки — и так же будет оформлять диктовку. Анализ идёт на этом компьютере, переписка никуда не отправляется.",
+    msLoad: "Загрузить переписку", msPaste: "или вставить сообщения текстом", msPasteD: "По одному сообщению на строку, лучше 100 и больше.",
+    msAnalyze: "Проанализировать", msHow: "Как выгрузить из Telegram",
+    msHowD: "Telegram Desktop → откройте чат → ⋮ → «Экспорт истории чата» → снимите галочки с фото и видео, формат «JSON» (подойдёт и HTML) → «Экспортировать». Выберите здесь файл result.json. Можно несколько чатов сразу. WhatsApp: чат → ⋮ → «Ещё» → «Экспорт чата» → «Без файлов» (.txt).",
+    msWho: "Кто из них вы?", msWhoD: "Найдено {n} сообщений. Выберите себя — анализируются только ваши сообщения.", msCancel: "Отмена",
+    msMine: "Ваш стиль", msMineD: "Проанализировано {n} сообщений · в профиле статистика и {s} примеров, сама переписка не хранится.",
+    msUpdate: "Обновить", msRemove: "Удалить", msRemoveQ: "Точно?",
+    msApplied: "Применяется в диктовке, если выбран стиль «Мой стиль».",
+    msNeedEd: "КАПС, скобки-смайлы и ваши словечки копирует редактор — установите его ниже. Без него применяются только регистр, точки, запятые и «ё».",
+    msWithEd: "Редактор видит примеры ваших сообщений и копирует КАПС, скобки и словечки — смысл и слова не меняет.",
+    msFew: "Мало сообщений для анализа ({n}). Нужно хотя бы 10, лучше 100+.", msErr: "Не удалось прочитать файл", msDone: "Готово — стиль диктовки: «Мой стиль»",
     stFormal: "Обычный", stCasual: "Непринуждённый", stVery: "Очень непринуждённый",
     exFormal: "Привет. Как дела? Скинь ссылку на GitHub.", exCasual: "привет. как дела? скинь ссылку на GitHub", exVery: "привет как дела? скинь ссылку на GitHub",
     example: "Пример", paras: "Абзацы по паузам", parasD: "Замолчали дольше заданного — текст начнётся с нового абзаца.",
@@ -563,6 +597,18 @@ const I18N = {
     autostart: "Start with Windows", autostartD: "Quietly, in the tray",
     keys: {ctrl_r: "Right Ctrl", alt_r: "Right Alt", shift_r: "Right Shift", caps_lock: "Caps Lock", scroll_lock: "Scroll Lock", pause: "Pause", insert: "Insert", f8: "F8", f9: "F9", f10: "F10"},
     sStyle: "Text style", style: "Style", styleD: "How dictated text is formatted. Names and English words are left as they are.",
+    stMine: "My style", sMyStyle: "My chat style",
+    msT: "Teach the app how you write", msD: "Load your chats — the app looks at how you write: capital letters, periods, commas, CAPS, brackets — and formats dictation the same way. Everything is analysed on this computer and nothing is sent anywhere.",
+    msLoad: "Load chats", msPaste: "or paste messages as text", msPasteD: "One message per line, ideally 100 or more.",
+    msAnalyze: "Analyse", msHow: "How to export from Telegram",
+    msHowD: "Telegram Desktop → open a chat → ⋮ → “Export chat history” → untick photos and videos, format “JSON” (HTML works too) → “Export”. Pick result.json here; several chats at once is fine. WhatsApp: chat → ⋮ → More → Export chat → Without media (.txt).",
+    msWho: "Which one is you?", msWhoD: "Found {n} messages. Pick yourself — only your messages are analysed.", msCancel: "Cancel",
+    msMine: "Your style", msMineD: "{n} messages analysed · the profile keeps statistics and {s} examples, not the chats.",
+    msUpdate: "Update", msRemove: "Remove", msRemoveQ: "Sure?",
+    msApplied: "Used in dictation when the style is “My style”.",
+    msNeedEd: "CAPS, smiley brackets and your typical words are copied by the editor — install it below. Without it only case, periods, commas and «ё» are applied.",
+    msWithEd: "The editor sees examples of your messages and copies CAPS, brackets and your words — without changing meaning or words.",
+    msFew: "Too few messages ({n}). At least 10 are needed, 100+ is better.", msErr: "Couldn't read the file", msDone: "Done — dictation style: “My style”",
     stFormal: "Formal", stCasual: "Casual", stVery: "Very casual",
     exFormal: "Привет. Как дела? Скинь ссылку на GitHub.", exCasual: "привет. как дела? скинь ссылку на GitHub", exVery: "привет как дела? скинь ссылку на GitHub",
     example: "Example", paras: "Paragraphs on pauses", parasD: "Pause longer than set — the text continues in a new paragraph.",
@@ -1227,6 +1273,7 @@ async function pageSettings() {
   crumbs([{em: "⚙️", text: t("navSettings")}]); actions("");
   const mics = await api.list_mics();
   const ver = await api.get_version();
+  msHas = (await api.mystyle_status()).exists;
   if (page !== "settings") return;
   const K = I18N[LANG].keys;
   const D = {
@@ -1236,7 +1283,7 @@ async function pageSettings() {
     mic: [{v: "", label: t("micDefault")}, ...mics.map((m) => ({v: String(m.id), label: m.name}))],
     model: [{v: "v3_e2e_rnnt", label: t("modelRnnt")}, {v: "v3_e2e_ctc", label: t("modelCtc")}],
     lang: [{v: "ru", label: "Русский"}, {v: "en", label: "English"}],
-    style: [{v: "formal", label: t("stFormal")}, {v: "casual", label: t("stCasual")}, {v: "very_casual", label: t("stVery")}],
+    style: [{v: "formal", label: t("stFormal")}, {v: "casual", label: t("stCasual")}, {v: "very_casual", label: t("stVery")}, ...(msHas ? [{v: "mine", label: t("stMine")}] : [])],
     lp: [{v: "long", label: t("lpLong")}, {v: "chunk", label: t("lpChunk")}, {v: "none", label: t("lpNone")}],
     pause: [{v: "0.8", label: t("pShort")}, {v: "1.2", label: t("pMid")}, {v: "2", label: t("pLong")}],
     zoom: ZOOMS.map((z) => ({v: String(z), label: Math.round(z * 100) + "%"})),
@@ -1269,6 +1316,8 @@ async function pageSettings() {
         ${row(t("lpT"), t("lpD"), ddHtml("s-lp", D.lp, settings.long_paragraphs || "long"))}
       </div>
       <div class="cardnote">${t("styleNote")}</div>
+      <h3>${t("sMyStyle")}</h3>
+      <div class="card" id="msCard"></div>
       <h3>${t("sEditor")}</h3>
       <div class="card" id="edCard"></div>
       <h3>${t("sRecognition")}</h3>
@@ -1302,6 +1351,12 @@ async function pageSettings() {
   ddBind("s-model", D.model, (v) => set("model", v));
   const paintEx = () => {
     const st = settings.style || "formal";
+    if (st === "mine") {
+      const src = t("exFormal") + "\n\n" + "Встретимся завтра в одиннадцать.";
+      api.mystyle_preview(src).then((r) => { if ($("#styleEx")) $("#styleEx").innerHTML = `<small>${t("example")}</small>${esc(r)}`; });
+      $("#pauseRow").style.display = settings.paragraphs !== false ? "" : "none";
+      return;
+    }
     const one = t(st === "casual" ? "exCasual" : st === "very_casual" ? "exVery" : "exFormal");
     const two = st === "formal" ? "Встретимся завтра в одиннадцать." : st === "casual" ? "встретимся завтра в одиннадцать" : "встретимся завтра в одиннадцать";
     $("#styleEx").innerHTML = `<small>${t("example")}</small>${esc(one)}${settings.paragraphs !== false ? "\n\n" : " "}${esc(two)}`;
@@ -1315,6 +1370,7 @@ async function pageSettings() {
   ddBind("s-theme", D.theme, (v) => set("theme", v, applyTheme));
   ddBind("s-zoom", D.zoom, (v) => applyZoom(parseFloat(v), true, true));
   renderEditor();
+  renderMyStyle();
   const bindTog = (id, key) => $("#" + id).onchange = (e) => set(key, e.target.checked);
   ddBind("s-lp", D.lp, (v) => set("long_paragraphs", v));
   bindTog("s-clean", "clean"); bindTog("s-fill", "clean_fillers");
@@ -1332,6 +1388,75 @@ async function pageSettings() {
 
 /* ---------- editor model card ---------- */
 let edPoll = null;
+/* ---------- my chat style ---------- */
+let msHas = false;
+async function renderMyStyle(pick) {
+  const box = $("#msCard"); if (!box) return;
+  if (pick) {  // choose yourself among the senders
+    box.innerHTML = `<div class="srow"><div class="sl"><b>${t("msWho")}</b><small>${t("msWhoD").replace("{n}", pick.total)}</small></div>
+      <button class="btn secondary" id="msCancel">${t("msCancel")}</button></div>
+      <div class="mswho">${pick.senders.map(([n, c], i) => `<button class="mschip" data-i="${i}"><span>${esc(n)}</span><small>${c}</small></button>`).join("")}</div>`;
+    $("#msCancel").onclick = () => renderMyStyle();
+    box.querySelectorAll(".mschip").forEach((b) => b.onclick = () => msBuild(pick.senders[+b.dataset.i][0]));
+    return;
+  }
+  const st = await api.mystyle_status();
+  msHas = st.exists;
+  if (!$("#msCard")) return;
+  if (!st.exists) {
+    box.innerHTML = `<div class="srow"><div class="sl"><b>${t("msT")}</b><small>${t("msD")}</small></div>
+        <button class="btn primary" id="msLoad">${t("msLoad")}</button></div>
+      <div class="edwrap">
+        <details class="mshow"><summary>${t("msHow")}</summary><p>${t("msHowD")}</p></details>
+        <button class="linkbtn mslink" id="msPasteBtn">${t("msPaste")}</button>
+        <div id="msPasteBox" style="display:none">
+          <small>${t("msPasteD")}</small>
+          <textarea class="edtest" id="msText" rows="6"></textarea>
+          <div style="margin-top:8px"><button class="btn secondary" id="msAnalyze">${t("msAnalyze")}</button></div>
+        </div>
+      </div>`;
+    $("#msLoad").onclick = msPick;
+    $("#msPasteBtn").onclick = () => { $("#msPasteBox").style.display = ""; $("#msPasteBtn").style.display = "none"; $("#msText").focus(); };
+    $("#msAnalyze").onclick = async () => msDone(await api.mystyle_text($("#msText").value));
+    return;
+  }
+  const ed = await api.editor_status();
+  box.innerHTML = `<div class="srow"><div class="sl"><b>${t("msMine")}</b><small>${t("msMineD").replace("{n}", st.stats.messages).replace("{s}", st.samples)}</small></div>
+      <div class="msbtns"><button class="btn secondary" id="msLoad">${t("msUpdate")}</button><button class="btn secondary danger" id="msRemove"><span>${t("msRemove")}</span></button></div></div>
+    <div class="mshab">${st.habits.map((h) => `<div class="${h.on ? "on" : ""}"><i>${h.on ? IC.check : ""}</i><span>${esc(h.label)}</span><b>${esc(h.value)}</b></div>`).join("")}</div>
+    <div class="msfoot">${IC.info}<span>${t("msApplied")} ${ed.installed ? t("msWithEd") : t("msNeedEd")}</span></div>`;
+  $("#msLoad").onclick = msPick;
+  $("#msRemove").onclick = async () => {
+    const b = $("#msRemove");
+    if (!b.dataset.armed) {
+      b.dataset.armed = "1"; b.querySelector("span").textContent = t("msRemoveQ");
+      setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.querySelector("span").textContent = t("msRemove"); } }, 3000);
+      return;
+    }
+    await api.mystyle_remove();
+    if (settings.style === "mine") settings.style = "casual";
+    msHas = false; pageSettings();
+  };
+}
+async function msPick() {
+  const r = await api.mystyle_pick();
+  if (r.cancel) return;
+  if (r.error) { toast(t("msErr") + ": " + r.error); return; }
+  if (!r.total) { toast(t("msFew").replace("{n}", 0)); return; }
+  if (r.me) return msBuild(r.me);                       // full Telegram export knows who you are
+  if (r.senders.length <= 1) return msBuild(r.senders.length ? r.senders[0][0] : null);
+  renderMyStyle(r);
+}
+async function msBuild(sender) { msDone(await api.mystyle_build(sender)); }
+function msDone(r) {
+  if (r.error === "few") { toast(t("msFew").replace("{n}", r.count)); renderMyStyle(); return; }
+  if (!r.ok) { toast(t("msErr")); return; }
+  settings.style = "mine"; msHas = true;
+  toast(t("msDone"));
+  const y = $("#scroller").scrollTop;
+  pageSettings().then(() => { $("#scroller").scrollTop = y; });
+}
+
 async function renderEditor() {
   const box = $("#edCard"); if (!box) return;
   const st = await api.editor_status();
