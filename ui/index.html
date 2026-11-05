@@ -1439,7 +1439,8 @@ async function renderMyStyle(pick) {
   };
 }
 async function msPick() {
-  const r = await api.mystyle_pick();
+  let r;
+  try { r = await api.mystyle_pick(); } catch (e) { toast(t("msErr") + ": " + (e.message || e)); return; }
   if (r.cancel) return;
   if (r.error) { toast(t("msErr") + ": " + r.error); return; }
   if (!r.total) { toast(t("msFew").replace("{n}", 0)); return; }

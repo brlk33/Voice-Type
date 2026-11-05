@@ -912,9 +912,14 @@ class Api:
     def mystyle_pick(self):
         """Choose chat export files -> list of senders to pick yourself from."""
         import webview
-        paths = self._window.create_file_dialog(
-            webview.OPEN_DIALOG, allow_multiple=True,
-            file_types=("Telegram / WhatsApp (*.json;*.html;*.htm;*.txt)", f"{self._engine.s('all')} (*.*)"))
+        try:
+            # pywebview accepts only letters, digits and spaces in the filter name
+            paths = self._window.create_file_dialog(
+                webview.OPEN_DIALOG, allow_multiple=True,
+                file_types=("Telegram WhatsApp (*.json;*.html;*.htm;*.txt)", f"{self._engine.s('all')} (*.*)"))
+        except Exception as e:
+            log.exception("Мой стиль: окно выбора файлов")
+            return {"error": str(e)[:200]}
         if not paths:
             return {"cancel": True}
         try:
