@@ -139,6 +139,9 @@ aside {
 .dcard .dtop svg { color: var(--text-2); }
 .dcard .dkey { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--text-2); font-size: 13px; }
 .dcard .dkey kbd { font-size: 12.5px; height: 24px; display: inline-flex; align-items: center; padding: 0 9px; border-radius: 7px; background: var(--card); color: var(--text); box-shadow: var(--border) 0 0 0 1px inset, var(--border) 0 1.5px 0 0; }
+.dcard .dsys { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--divider); font-size: 12.5px; }
+.recsrc { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px; color: var(--text-2); font-size: 13px; }
+.recsrc .dd[disabled] { opacity: .55; pointer-events: none; }
 .dcard .dsub { color: var(--text-3); font-size: 12.5px; margin-top: 6px; line-height: 1.4; }
 .dcard[data-s=rec] { box-shadow: rgba(224, 62, 62, .45) 0 0 0 1.5px inset; }
 .dcard[data-s=rec] .dtop svg { color: var(--red); }
@@ -420,6 +423,7 @@ kbd { font: inherit; font-size: 11.5px; padding: 1px 6px; border-radius: 6px; ba
       <div class="dtop"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="5.5" y="1.5" width="5" height="8.5" rx="2.5"/><path d="M3 8a5 5 0 0 0 10 0M8 13v1.5"/></svg><span data-i="dictation"></span></div>
       <div class="dkey"><span id="dHold"></span><kbd id="dKey"></kbd></div>
       <div class="dsub" data-i="anyApp"></div>
+      <div class="dkey dsys" id="dSys"><span data-i="sysKey"></span><kbd id="dSysKey"></kbd></div>
     </div>
   </aside>
 
@@ -445,6 +449,10 @@ const I18N = {
     navFiles: "Распознать файл", navHistory: "История диктовок", navDict: "Словарь", navSettings: "Настройки",
     transcripts: "Транскрипты", noTranscripts: "Здесь появятся распознанные файлы",
     st_loading: "Загрузка модели…", st_ready: "Готов", st_rec: "Запись…", st_busy: "Распознаю…", st_error: "Ошибка",
+    sysKey: "🔊 Звук компьютера", sysHotkey: "Клавиша для звука компьютера",
+    sysHotkeyD: "Распознаёт то, что играет компьютер: Zoom, созвон, видео. Микрофон не пишется. Режим тот же, что у диктовки.",
+    off: "Выключено", recSrc: "Источник", srcMic: "Микрофон", srcSystem: "Звук компьютера", srcBoth: "Микрофон + звук компьютера",
+    srcBothD: "Для созвонов: ваш голос и собеседники. Лучше в наушниках — иначе колонки попадут в микрофон дважды.",
     hold: "Держите", press: "Нажмите", hintTail: "и говорите", dictation: "Диктовка", anyApp: "в любом окне и говорите — текст вставится сам",
     filesDesc: "Перетащите аудио или видео в это окно — текст появится здесь же, в разделе «Транскрипты».",
     dropT1: "Перетащите аудио или видео сюда", dropT2: "Аудио: mp3, m4a, wav, ogg, opus, flac. Видео: mp4, mkv, mov, avi, webm и другие — звук извлечётся сам. Любой длины.", pick: "Выбрать файлы",
@@ -511,6 +519,10 @@ const I18N = {
     navFiles: "Transcribe file", navHistory: "Dictation history", navDict: "Dictionary", navSettings: "Settings",
     transcripts: "Transcripts", noTranscripts: "Transcribed files will appear here",
     st_loading: "Loading model…", st_ready: "Ready", st_rec: "Recording…", st_busy: "Transcribing…", st_error: "Error",
+    sysKey: "🔊 Computer sound", sysHotkey: "Computer sound key",
+    sysHotkeyD: "Transcribes what the computer plays: Zoom, calls, videos. The microphone is not recorded. Same mode as dictation.",
+    off: "Off", recSrc: "Source", srcMic: "Microphone", srcSystem: "Computer sound", srcBoth: "Microphone + computer sound",
+    srcBothD: "For calls: your voice and the others. Best with headphones, otherwise speakers leak into the mic.",
     hold: "Hold", press: "Press", hintTail: "and speak", dictation: "Dictation", anyApp: "in any app and speak — the text is pasted for you",
     filesDesc: "Drop audio or video into this window — the text will appear right here, under Transcripts.",
     dropT1: "Drop audio or video here", dropT2: "Audio: mp3, m4a, wav, ogg, opus, flac. Video: mp4, mkv, mov, avi, webm and more — the sound is extracted automatically. Any length.", pick: "Choose files",
@@ -670,6 +682,9 @@ function applyLang() {
   const key = (I18N[LANG].keys[settings.hotkey] || settings.hotkey);
   $("#dHold").textContent = settings.mode === "toggle" ? t("press") : t("hold");
   $("#dKey").textContent = key;
+  const sk = settings.hotkey_system;
+  $("#dSys").style.display = sk && sk !== settings.hotkey ? "" : "none";
+  $("#dSysKey").textContent = I18N[LANG].keys[sk] || sk || "";
   paintStatus(); renderTrList(); renderPage();
 }
 
@@ -702,7 +717,7 @@ async function loadTrs() { trs = await api.list_transcripts(); renderTrList(); }
 function renderTrList() {
   const box = $("#trlist");
   if (!trs.length) { box.innerHTML = `<div class="trempty">${t("noTranscripts")}</div>`; return; }
-  box.innerHTML = trs.map((x) => `<div class="item" data-id="${x.id}" title="${esc(x.title)}"><span class="em">${x.recording ? "🔴" : x.kind === "youtube" ? "📺" : x.kind === "mic" ? "🎙️" : "📄"}</span><span class="lbl">${esc(x.title || t("untitled"))}</span><span class="del" title="${t("del")}">${IC.x}</span></div>`).join("");
+  box.innerHTML = trs.map((x) => `<div class="item" data-id="${x.id}" title="${esc(x.title)}"><span class="em">${x.recording ? "🔴" : x.kind === "youtube" ? "📺" : x.kind === "mic" ? "🎙️" : x.kind === "system" || x.kind === "both" ? "🔊" : "📄"}</span><span class="lbl">${esc(x.title || t("untitled"))}</span><span class="del" title="${t("del")}">${IC.x}</span></div>`).join("");
   box.querySelectorAll(".item").forEach((el) => {
     el.onclick = () => go(trs.find((x) => x.id === el.dataset.id)?.recording ? "record" : "tr:" + el.dataset.id);
     el.querySelector(".del").onclick = (e) => { e.stopPropagation(); delTr(el.dataset.id); };
@@ -884,6 +899,7 @@ function paintRecHead() {
 }
 function paintControls() {
   const c = $("#recControls"); if (!c) return;
+  paintSrc();
   const L = $("#recLabels");
   if (rec.state === "idle") {
     c.innerHTML = `<button class="rbtn big" id="bStart" title="${t("recStart")}">${ICR.rec}</button>`;
@@ -986,13 +1002,25 @@ async function pageRecord() {
         <div class="wave"><canvas id="recWave"></canvas><div class="ph" id="wavePh">${t("recWaveIdle")}</div></div>
         <div class="controls" id="recControls"></div>
         <div class="rlabels" id="recLabels"></div>
+        <div class="recsrc">${t("recSrc")} ${ddHtml("recSrcDd", recSources(), settings.rec_source || "mic")}</div>
+        <div class="rnote" id="recSrcNote"></div>
         <div class="rnote">${t("recNote")}</div>
       </div>
       <h3 class="livehead">${t("recLive")} <small>· ${t("recLag")}</small></h3>
       <div class="doc" id="recLive"></div>
     </div>`;
+  ddBind("recSrcDd", recSources(), async (v) => { settings.rec_source = v; await api.save_settings({rec_source: v}); paintSrc(); });
   paintRecHead(); paintControls(); renderLive();
   if (rec.state !== "idle") startPolling();
+}
+function recSources() {
+  return [{v: "mic", label: t("srcMic")}, {v: "system", label: t("srcSystem")}, {v: "both", label: t("srcBoth")}];
+}
+function paintSrc() {
+  const dd = $("#recSrcDd"); if (!dd) return;
+  if (rec.state === "idle") dd.removeAttribute("disabled"); else dd.setAttribute("disabled", "");
+  $("#recSrcNote").textContent = (settings.rec_source === "both") ? t("srcBothD") : "";
+  $("#recSrcNote").style.display = settings.rec_source === "both" ? "" : "none";
 }
 
 
@@ -1163,6 +1191,7 @@ async function pageSettings() {
   const K = I18N[LANG].keys;
   const D = {
     hotkey: Object.keys(K).map((k) => ({v: k, label: K[k]})),
+    syskey: [{v: "", label: t("off")}, ...Object.keys(K).filter((k) => k !== settings.hotkey).map((k) => ({v: k, label: K[k]}))],
     mode: [{v: "hold", label: t("modeHold")}, {v: "toggle", label: t("modeToggle")}],
     mic: [{v: "", label: t("micDefault")}, ...mics.map((m) => ({v: String(m.id), label: m.name}))],
     model: [{v: "v3_e2e_rnnt", label: t("modelRnnt")}, {v: "v3_e2e_ctc", label: t("modelCtc")}],
@@ -1182,6 +1211,7 @@ async function pageSettings() {
       <h3>${t("sDictation")}</h3>
       <div class="card">
         ${row(t("hotkey"), "", ddHtml("s-hotkey", D.hotkey, settings.hotkey))}
+        ${row(t("sysHotkey"), t("sysHotkeyD"), ddHtml("s-syskey", D.syskey, settings.hotkey_system || ""))}
         ${row(t("mode"), t("modeD"), ddHtml("s-mode", D.mode, settings.mode))}
         ${row(t("mic"), "", ddHtml("s-mic", D.mic, settings.mic_device ?? ""))}
         ${row(t("sounds"), "", tog("s-sounds", settings.sounds))}
@@ -1221,7 +1251,12 @@ async function pageSettings() {
       </div>
     </div>`;
   const set = async (key, v, after) => { settings[key] = v; await api.save_settings({[key]: v}); after && after(); };
-  ddBind("s-hotkey", D.hotkey, (v) => set("hotkey", v, applyLang));
+  ddBind("s-hotkey", D.hotkey, (v) => {
+    if (v === settings.hotkey_system) settings.hotkey_system = "";  // one key can't do both
+    settings.hotkey = v;
+    api.save_settings({hotkey: v, hotkey_system: settings.hotkey_system || ""}).then(applyLang);
+  });
+  ddBind("s-syskey", D.syskey, (v) => set("hotkey_system", v, applyLang));
   ddBind("s-mode", D.mode, (v) => set("mode", v, applyLang));
   ddBind("s-mic", D.mic, (v) => set("mic_device", v === "" ? null : Number(v)));
   ddBind("s-model", D.model, (v) => set("model", v));

@@ -9,3 +9,4 @@ imageio-ffmpeg
 pywebview==5.4
 yt-dlp
 youtube-transcript-api
+soundcard

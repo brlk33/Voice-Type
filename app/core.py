@@ -22,6 +22,8 @@ log = logging.getLogger("voicetype")
 
 DEFAULT_CONFIG = {
     "hotkey": "ctrl_r",
+    "hotkey_system": "shift_r",  # dictate the computer's sound ("" = off)
+    "rec_source": "mic",         # long recording: mic | system | both
     "mode": "hold",
     "model": "v3_e2e_rnnt",
     "device": "auto",

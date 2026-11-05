@@ -94,11 +94,14 @@ class Engine:
         self.level = 0.0
         self.stream = None
         self.hot_down = False
+        self.rec_src = "mic"
         self.block_dictation = False
         from pynput import keyboard
         self.kb = keyboard
         self.ctl = keyboard.Controller()
         self.hotkey = self.parse_key(self.cfg["hotkey"])
+        self.hotkey_sys = self.parse_sys_key(self.cfg.get("hotkey_system", ""))
+        self.hot_src = "mic"
         from overlay import Overlay
         self.overlay = Overlay(lambda: self.level)
         self.overlay.enabled = self.cfg.get("overlay", True)
@@ -159,30 +162,47 @@ class Engine:
             return self.kb.KeyCode.from_char(name)
         raise ValueError(f"Unknown key: {name}")
 
+    def parse_sys_key(self, name):
+        """Key for dictating the computer's sound; None when off or same as the main key."""
+        try:
+            k = self.parse_key(name) if name else None
+        except ValueError:
+            return None
+        return None if k == self.hotkey else k
+
+    def _src_of(self, key):
+        if key == self.hotkey:
+            return "mic"
+        if self.hotkey_sys is not None and key == self.hotkey_sys:
+            return "system"
+        return None
+
     def on_press(self, key):
         # runs inside the Windows keyboard hook: must return fast, real work goes to _act
-        if key == self.hotkey:
+        src = self._src_of(key)
+        if src and (not self.hot_down or src == self.hot_src):
             if self.hot_down:  # autorepeat
                 return
             self.hot_down = True
-            self._actions.put("down")
+            self.hot_src = src
+            self._actions.put(("down", src))
         elif self.hot_down:
-            self._actions.put("other")
+            self._actions.put(("other", None))
 
     def on_release(self, key):
-        if key == self.hotkey:
+        if self.hot_down and self._src_of(key) == self.hot_src:
             self.hot_down = False
-            self._actions.put("up")
+            self._actions.put(("up", self.hot_src))
 
     def _act(self):
         while True:
-            a = self._actions.get()
+            a, src = self._actions.get()
             try:
                 hold = self.cfg["mode"] == "hold"
                 if a == "down":
                     if hold or not self.recording:
-                        self.start_recording()
-                    else:
+                        self.start_recording(src)
+                    elif src == self.rec_src:
                         self.stop_recording()
                 elif a == "up" and hold and self.recording:
                     self.stop_recording()
@@ -192,24 +212,23 @@ class Engine:
                 log.exception("hotkey action")
 
     # ------------------------------------------------------------ audio
-    def start_recording(self):
+    def start_recording(self, src="mic"):
         if self.rec is None or self.recording or getattr(self, "block_dictation", False):
             return
-        import sounddevice as sd
+        from audio_src import Capture
         self.frames = []
 
-        def cb(indata, frames, t, status):
-            x = indata[:, 0].copy()
+        def cb(x):
             self.frames.append(x)
             self.level = self.level * 0.5 + float(np.sqrt(np.mean(x * x))) * 0.5
         try:
-            self.stream = sd.InputStream(samplerate=core.SR, channels=1, dtype="float32",
-                                         device=self.cfg.get("mic_device"), callback=cb)
+            self.stream = Capture(src, cb, block=800, mic_device=self.cfg.get("mic_device"))
             self.stream.start()
         except Exception as e:
-            log.exception("Микрофон")
-            self.set_state("error", f"Mic: {e}")
+            log.exception("Источник звука: %s", src)
+            self.set_state("error", ("Mic: " if src == "mic" else "System sound: ") + str(e))
             return
+        self.rec_src = src
         self.recording = True
         if self.cfg["sounds"]:
             beep(880)
@@ -221,7 +240,6 @@ class Engine:
         self.level = 0.0
         try:
             self.stream.stop()
-            self.stream.close()
         except Exception:
             pass
         audio = np.concatenate(self.frames) if self.frames else np.zeros(0, np.float32)
@@ -511,14 +529,14 @@ class LongRecorder:
                    "source": "", "kind": "mic", "created": now.isoformat(timespec="seconds"),
                    "duration": 0, "model": eng.rec.model_name, "segments": [], "recording": True}
         tr_save(self.tr)
-        import sounddevice as sd
+        from audio_src import Capture
+        src = eng.cfg.get("rec_source", "mic")
+        self.tr["kind"] = {"mic": "mic", "system": "system", "both": "both"}.get(src, "mic")
         try:
-            self.stream = sd.InputStream(samplerate=core.SR, channels=1, dtype="int16",
-                                         blocksize=self.BLOCK, device=eng.cfg.get("mic_device"),
-                                         callback=self._cb)
+            self.stream = Capture(src, self._cb, block=self.BLOCK, mic_device=eng.cfg.get("mic_device"))
             self.stream.start()
         except Exception as e:
-            log.exception("long rec mic")
+            log.exception("long rec source %s", src)
             self._discard()
             self._reset()
             return {"ok": False, "error": str(e)}
@@ -577,10 +595,10 @@ class LongRecorder:
                 "tid": self.tr["id"] if self.tr else None, "error": self.error}
 
     # ---------------------------------------------------------------- internals
-    def _cb(self, indata, frames, t, status):
+    def _cb(self, xf):
         if self.state != "rec":
             return
-        x = indata[:, 0]
+        x = (xf * 32767).astype(np.int16)
         with self.lock:
             # drop audio that is already recognized, then append
             drop = self.done_upto - self.base
@@ -603,7 +621,6 @@ class LongRecorder:
     def _close_input(self):
         try:
             self.stream.stop()
-            self.stream.close()
         except Exception:
             pass
 
@@ -1147,6 +1164,8 @@ class Api:
         if "overlay" in patch:
             eng.overlay.enabled = bool(patch["overlay"])
         eng.cfg.update(patch)
+        if "hotkey" in patch or "hotkey_system" in patch:
+            eng.hotkey_sys = eng.parse_sys_key(eng.cfg.get("hotkey_system", ""))
         if "ui_lang" in patch:
             eng.overlay.busy_text = eng.s("busy")
             self._out.put(lambda: tray_rebuild(eng))
