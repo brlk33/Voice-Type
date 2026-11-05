@@ -1419,6 +1419,16 @@ def start_watchdog():
     threading.Thread(target=beat, daemon=True).start()
 
 
+def native_hwnd(win, timeout=60):
+    """HWND of a pywebview window, for background threads. window.native is assigned at the very
+    start of the form's constructor, so polling it is not enough: reading .Handle while the
+    constructor runs deadlocks with the UI thread (tray icon alive, no window, nothing responds).
+    before_show fires after the constructor returned; timeout is generous for a cold start."""
+    if not win.events.before_show.wait(timeout):
+        raise TimeoutError(f"окно {win.title} не создалось за {timeout} с")
+    return int(str(win.native.Handle.ToInt64()))
+
+
 def main():
     tray_mode = "--tray" in sys.argv
     start_watchdog()
@@ -1482,25 +1492,15 @@ def main():
         # lets WebView2 hand over real paths of dropped files (see take_dropped)
         _dnd_state["num_listeners"] = max(1, _dnd_state["num_listeners"])
         try:
-            for _ in range(100):
-                if getattr(win, "native", None) is not None:
-                    break
-                time.sleep(0.05)
-            api._win.attach(int(str(win.native.Handle.ToInt64())))
+            api._win.attach(native_hwnd(win))
         except Exception:
             log.exception("hwnd")
         api._engine.start()
         def start_mini():
             try:
-                for _ in range(1200):  # up to 60 s: on a busy PC the second window can be slow
-                    if getattr(mini, "native", None) is not None:
-                        break
-                    time.sleep(0.05)
-                if getattr(mini, "native", None) is None:
-                    log.error("Мини-плеер: окно не создалось")
-                    return
+                hwnd = native_hwnd(mini)
                 ctl = MiniController(api, api._win.hwnd)
-                ctl.attach(int(str(mini.native.Handle.ToInt64())))
+                ctl.attach(hwnd)
                 mini_api._ctl = ctl
                 ctl.loop()
             except Exception:
