@@ -41,6 +41,9 @@ VIAddVersionKey /LANG=0 "LegalCopyright" "github.com/brlk33/Voice-Type"
 !define MUI_WELCOMEPAGE_TITLE "$(WelcomeTitle)"
 !define MUI_WELCOMEPAGE_TEXT "$(WelcomeText)"
 !insertmacro MUI_PAGE_WELCOME
+!define MUI_COMPONENTSPAGE_SMALLDESC
+!define MUI_COMPONENTSPAGE_TEXT_TOP "$(CompText)"
+!insertmacro MUI_PAGE_COMPONENTS
 !define MUI_DIRECTORYPAGE_TEXT_TOP "$(DirText)"
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
@@ -59,8 +62,18 @@ VIAddVersionKey /LANG=0 "LegalCopyright" "github.com/brlk33/Voice-Type"
 
 LangString WelcomeTitle ${LANG_RUSSIAN} "Установка VoiceType ${VERSION}"
 LangString WelcomeTitle ${LANG_ENGLISH} "VoiceType ${VERSION} Setup"
-LangString WelcomeText ${LANG_RUSSIAN} "Диктовка и расшифровка речи прямо на вашем компьютере — без интернета, бесплатно и без ограничений.$\r$\n$\r$\nУстановщик скачает Python, PyTorch и модель распознавания речи. Понадобится:$\r$\n$\r$\n  •  около 6 ГБ на диске$\r$\n  •  интернет на 10–20 минут$\r$\n  •  видеокарта NVIDIA (желательно)$\r$\n$\r$\nПрава администратора не нужны."
-LangString WelcomeText ${LANG_ENGLISH} "Dictation and speech transcription right on your computer — offline, free and unlimited.$\r$\n$\r$\nSetup will download Python, PyTorch and the speech model. You will need:$\r$\n$\r$\n  •  about 6 GB of disk space$\r$\n  •  internet for 10–20 minutes$\r$\n  •  an NVIDIA graphics card (recommended)$\r$\n$\r$\nNo administrator rights needed."
+LangString WelcomeText ${LANG_RUSSIAN} "Диктовка и расшифровка речи прямо на вашем компьютере — без интернета, бесплатно и без ограничений.$\r$\n$\r$\nУстановщик скачает Python, PyTorch и модель распознавания речи. Понадобится:$\r$\n$\r$\n  •  около 1,3 ГБ на диске$\r$\n  •  интернет на 5–10 минут$\r$\n$\r$\nУскорение на видеокарте NVIDIA можно выбрать на следующем шаге или включить потом в настройках.$\r$\n$\r$\nПрава администратора не нужны."
+LangString WelcomeText ${LANG_ENGLISH} "Dictation and speech transcription right on your computer — offline, free and unlimited.$\r$\n$\r$\nSetup will download Python, PyTorch and the speech model. You will need:$\r$\n$\r$\n  •  about 1.3 GB of disk space$\r$\n  •  internet for 5–10 minutes$\r$\n$\r$\nNVIDIA graphics card acceleration can be picked on the next step or turned on later in the settings.$\r$\n$\r$\nNo administrator rights needed."
+LangString CompText ${LANG_RUSSIAN} "Базовая версия распознаёт речь на процессоре — для диктовки этого хватает. Ускорение на видеокарте можно добавить и позже: Настройки → Распознавание."
+LangString CompText ${LANG_ENGLISH} "The base version recognizes speech on the processor — enough for dictation. Graphics card acceleration can also be added later: Settings → Recognition."
+LangString SecMainName ${LANG_RUSSIAN} "VoiceType"
+LangString SecMainName ${LANG_ENGLISH} "VoiceType"
+LangString SecGpuName ${LANG_RUSSIAN} "Ускорение на видеокарте NVIDIA"
+LangString SecGpuName ${LANG_ENGLISH} "NVIDIA graphics card acceleration"
+LangString SecMainDesc ${LANG_RUSSIAN} "Программа, Python, PyTorch для процессора и модель распознавания GigaAM. Около 1,3 ГБ."
+LangString SecMainDesc ${LANG_ENGLISH} "The app, Python, processor PyTorch and the GigaAM speech model. About 1.3 GB."
+LangString SecGpuDesc ${LANG_RUSSIAN} "PyTorch для видеокарт NVIDIA: длинные записи и файлы распознаются в разы быстрее. Ещё ~3,7 ГБ на диске, скачивается ~2,5 ГБ."
+LangString SecGpuDesc ${LANG_ENGLISH} "PyTorch for NVIDIA cards: long recordings and files are recognized several times faster. ~3.7 GB more on disk, ~2.5 GB download."
 LangString DirText ${LANG_RUSSIAN} "Папка для VoiceType. Нужна папка, куда можно писать без прав администратора (не Program Files на диске C) — иначе не сработает автообновление."
 LangString DirText ${LANG_ENGLISH} "Folder for VoiceType. Pick a folder you can write to without admin rights (not Program Files on drive C), otherwise auto-update can't work."
 LangString NoWrite ${LANG_RUSSIAN} "Нет доступа на запись в папку:$\r$\n$INSTDIR$\r$\n$\r$\nВыберите другую папку."
@@ -85,8 +98,9 @@ LangString KeepData ${LANG_ENGLISH} "Keep your transcripts, dictation history, d
   Sleep 800
 !macroend
 
-Section "VoiceType" SecMain
-  AddSize 6000000
+Section "$(SecMainName)" SecMain
+  SectionIn RO
+  AddSize 1300000
   SetOutPath "$INSTDIR"
   ClearErrors
   FileOpen $0 "$INSTDIR\.write_test" w
@@ -107,6 +121,7 @@ Section "VoiceType" SecMain
   File "${SRC}/start_debug.bat"
   File "${SRC}/transcribe_files.bat"
   File "${SRC}/build_exe.bat"
+  File "${SRC}/gpu.bat"
   File "${SRC}/requirements.txt"
   File "${SRC}/constraints.txt"
   File "${SRC}/version.txt"
@@ -116,9 +131,20 @@ Section "VoiceType" SecMain
 
   WriteUninstaller "$INSTDIR\Uninstall.exe"
   WriteRegStr HKCU "Software\${APP}" "InstallDir" "$INSTDIR"
+SectionEnd
 
+Section /o "$(SecGpuName)" SecGpu
+  AddSize 3700000
+SectionEnd
+
+Section "-Setup"
+  StrCpy $1 ""
+  SectionGetFlags ${SecGpu} $2
+  IntOp $2 $2 & ${SF_SELECTED}
+  StrCmp $2 "0" +2
+    StrCpy $1 " /gpu"
   DetailPrint "$(Step)"
-  nsExec::ExecToLog '"$SYSDIR\cmd.exe" /c ""$INSTDIR\install.bat" /silent"'
+  nsExec::ExecToLog '"$SYSDIR\cmd.exe" /c ""$INSTDIR\install.bat" /silent$1"'
   Pop $0
   StrCmp $0 "0" ok
     SetDetailsView show
@@ -135,8 +161,13 @@ Section "VoiceType" SecMain
   WriteRegStr HKCU "${UNINST_KEY}" "UninstallString" '"$INSTDIR\Uninstall.exe"'
   WriteRegDWORD HKCU "${UNINST_KEY}" "NoModify" 1
   WriteRegDWORD HKCU "${UNINST_KEY}" "NoRepair" 1
-  WriteRegDWORD HKCU "${UNINST_KEY}" "EstimatedSize" 6000000
+  WriteRegDWORD HKCU "${UNINST_KEY}" "EstimatedSize" 1300000
 SectionEnd
+
+!insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecMain} "$(SecMainDesc)"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecGpu} "$(SecGpuDesc)"
+!insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 Function RunApp
   SetOutPath "$INSTDIR"

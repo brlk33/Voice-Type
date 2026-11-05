@@ -86,18 +86,50 @@ def _download(url, dest: Path, progress, label, share=(0, 1)):
     os.replace(part, dest)
 
 
+TORCH_LIB = ROOT / ".venv" / "Lib" / "site-packages" / "torch" / "lib"
+
+
+def has_cuda_runtime() -> bool:
+    """llama.cpp's CUDA build needs cudart/cuBLAS: they come with the NVIDIA PyTorch,
+    or (light install) from llama.cpp's own cudart package next to llama-server."""
+    return (TORCH_LIB / "cublas64_12.dll").exists() or (LLAMA_DIR / "cublas64_12.dll").exists()
+
+
+def _find_release(rels, pattern):
+    for rel in rels:
+        for a in rel.get("assets", []):
+            if re.fullmatch(pattern, a["name"]):
+                return rel, a
+    return None, None
+
+
+def _install_cudart(progress, rels=None, share=(0.0, 0.08)):
+    rels = rels or _get_json(LLAMA_RELEASES + "?per_page=15")
+    _, a = _find_release(rels, r"cudart-llama-bin-win-cuda-?12[\d.]*-x64\.zip")
+    if not a:
+        raise RuntimeError("Не нашёл библиотеки CUDA для llama.cpp")
+    zpath = ROOT / "cache" / a["name"]
+    _download(a["browser_download_url"], zpath, progress, "CUDA", share)
+    with zipfile.ZipFile(zpath) as z:
+        z.extractall(LLAMA_DIR)
+    zpath.unlink(missing_ok=True)
+    log.info("CUDA для редактора: %s", a["name"])
+
+
+def ensure_cuda_runtime():
+    """After switching to the light PyTorch the editor still needs cuBLAS: fetch it once."""
+    if installed() and not has_cuda_runtime():
+        try:
+            _install_cudart(lambda *a: None)
+        except Exception:
+            log.exception("CUDA для редактора")
+
+
 def _install_llama(progress):
     # the "latest" release can be a nightly placeholder: look through recent releases
     rels = _get_json(LLAMA_RELEASES + "?per_page=15")
-    pick, seen = None, []
-    for rel in rels:
-        for a in rel.get("assets", []):
-            seen.append(a["name"])
-            if re.fullmatch(r"llama-.*-bin-win-cuda-?12[\d.]*-x64\.zip", a["name"]):
-                pick = a
-                break
-        if pick:
-            break
+    seen = [a["name"] for rel in rels for a in rel.get("assets", [])]
+    _, pick = _find_release(rels, r"llama-.*-bin-win-cuda-?12[\d.]*-x64\.zip")
     if not pick:
         raise RuntimeError("Не нашёл сборку llama.cpp для CUDA 12. Файлы: " + ", ".join(seen[:30])[:400])
     zpath = ROOT / "cache" / pick["name"]
@@ -108,6 +140,8 @@ def _install_llama(progress):
         z.extractall(LLAMA_DIR)
     zpath.unlink(missing_ok=True)
     log.info("llama.cpp: %s", pick["name"])
+    if not has_cuda_runtime():
+        _install_cudart(progress, rels, (0.08, 0.06))
 
 
 def _install_model(progress):
@@ -123,7 +157,7 @@ def _install_model(progress):
                     continue
                 name = files[0]
                 _download(f"{host}/{repo}/resolve/main/{name}", MODEL_DIR / Path(name).name,
-                          progress, "Qwen3-4B", (0.08, 0.92))
+                          progress, "Qwen3-4B", (0.14, 0.86))
                 log.info("Модель редактора: %s/%s", repo, name)
                 return
             except Exception as e:
@@ -145,7 +179,8 @@ def disk_size() -> int:
 
 
 def install_status():
-    return dict(_install_state, installed=installed(), size=disk_size() if installed() else 0)
+    return dict(_install_state, installed=installed(), size=disk_size() if installed() else 0,
+                need=2.7e9 + (0 if has_cuda_runtime() else 0.4e9))
 
 
 def install_async(on_done=None):

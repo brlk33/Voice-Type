@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import core  # noqa: E402
 import editor  # noqa: E402
 import mystyle  # noqa: E402
+import slim  # noqa: E402
 
 core.setup_logging("app")
 log = core.log
@@ -828,11 +829,46 @@ class Api:
 
     def _auto_update(self):
         time.sleep(8)  # let the model load first
-        if not self._engine.cfg.get("auto_update", True):
-            return
-        res = self.check_updates()
-        if res.get("updated"):
-            self._js(f"vt.onUpdate({json.dumps(res, ensure_ascii=False)})")
+        if self._engine.cfg.get("auto_update", True):
+            res = self.check_updates()
+            if res.get("updated"):
+                self._js(f"vt.onUpdate({json.dumps(res, ensure_ascii=False)})")
+        self._housekeeping()
+
+    def _housekeeping(self):
+        """Once per version: drop files PyTorch doesn't need at run time, the download cache,
+        and make sure the editor has its CUDA libraries (after switching to the light PyTorch)."""
+        try:
+            import updater
+            ver = updater.local_version()
+            if self._engine.cfg.get("slim_ver") != ver:
+                freed = slim.slim()
+                log.info("Очистка: освобождено %.0f МБ", freed / 1048576)
+                self.save_settings({"slim_ver": ver})
+            editor.ensure_cuda_runtime()
+        except Exception:
+            log.exception("Очистка")
+
+    # ------------- graphics card acceleration
+    def gpu_status(self):
+        import torch
+        rec = self._engine.rec
+        return {"cuda": bool(torch.version.cuda), "active": bool(rec and rec.device == "cuda"),
+                "nvidia": slim.nvidia_gpu()}
+
+    def gpu_switch(self, mode):
+        """Switch PyTorch build in a console window (the app must be closed for that) and come back."""
+        if self._long.state != "idle":
+            return {"ok": False, "error": "recording"}
+        bat = core.ROOT / "gpu.bat"
+        if not bat.exists():
+            return {"ok": False, "error": "gpu.bat"}
+        editor.SERVER.stop()
+        subprocess.Popen(["cmd", "/c", str(bat), "gpu" if mode == "gpu" else "cpu"], cwd=str(core.ROOT),
+                         creationflags=0x00000010)  # CREATE_NEW_CONSOLE: the user sees the progress
+        log.info("Переключение PyTorch: %s", mode)
+        threading.Timer(0.8, lambda: os._exit(0)).start()
+        return {"ok": True}
 
     def restart(self):
         """Start a fresh copy of the app and quit this one (to load an installed update)."""

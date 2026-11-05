@@ -11,9 +11,14 @@ set "PYTHONIOENCODING=utf-8"
 set "PYTHONUTF8=1"
 set "SILENT="
 set "NOSTART="
+set "GPU="
 rem /silent: run from VoiceType-Setup.exe - no pauses, the setup window shows the output
-if /i "%~1"=="/silent" (
-  set "SILENT=1"
+rem /gpu:    PyTorch for NVIDIA cards (fast, +3.7 GB); without it the light processor-only PyTorch
+for %%A in (%*) do (
+  if /i "%%~A"=="/silent" set "SILENT=1"
+  if /i "%%~A"=="/gpu" set "GPU=1"
+)
+if defined SILENT (
   set "NOSTART=--no-start"
   rem the setup window reads output in the Windows ANSI code page
   set "PYTHONIOENCODING=mbcs:replace"
@@ -36,12 +41,24 @@ if not exist "%PY%" (
 )
 
 echo.
-echo === [3/6] PyTorch with CUDA (about 3 GB, be patient) ===
-"%UV%" pip install --python "%PY%" torch==2.7.1 torchaudio==2.7.1 --index-url https://download.pytorch.org/whl/cu126 || goto :fail
+rem an existing install keeps its PyTorch unless /gpu asks for the NVIDIA one
+if not defined GPU "%PY%" -c "import torch" >nul 2>&1 && goto :torch_done
+if defined GPU goto :torch_gpu
+echo === [3/6] PyTorch, light processor version - about 200 MB ===
+"%UV%" pip install --python "%PY%" torch==2.7.1+cpu torchaudio==2.7.1+cpu --index-url https://download.pytorch.org/whl/cpu || goto :fail
+goto :torch_done
+:torch_gpu
+echo === [3/6] PyTorch for NVIDIA graphics cards - about 2.5 GB, be patient ===
+"%UV%" pip install --python "%PY%" torch==2.7.1+cu126 torchaudio==2.7.1+cu126 --index-url https://download.pytorch.org/whl/cu126 || goto :fail
+:torch_done
 
 echo.
 echo === [4/6] Libraries ===
 "%UV%" pip install --python "%PY%" -r requirements.txt -c constraints.txt || goto :fail
+
+echo.
+echo === Cleaning up files that are not needed ===
+"%PY%" app\slim.py
 
 echo.
 echo === [5/6] Model download and check ===

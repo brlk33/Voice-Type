@@ -556,7 +556,14 @@ const I18N = {
     upDone: "Обновление установлено", upRestart: "Перезапустить", upBanner: "Установлена версия", upRecBusy: "Сначала завершите запись",
     upDeps: "Не все библиотеки обновились — запустите update.bat",
     sEditor: "Редактор", edT: "Модель-редактор", edD: "Нейросеть на видеокарте исправляет английские названия (After Effects, Figma, Alt+Tab), ошибки распознавания и пунктуацию — ваши слова не меняет.",
-    edInstall: "Установить · 2,7 ГБ", edInstalling: "Скачиваю", edNotInstalled: "Не установлен", edReady: "Установлен", edGpu: "на видеокарте", edCpu: "на процессоре",
+    gpuT: "Ускорение на видеокарте",
+    gpuOn: "Включено · {gpu}. Распознавание идёт на видеокарте — длинные файлы обрабатываются в разы быстрее.",
+    gpuOnIdle: "Установлено, но видеокарта NVIDIA сейчас не найдена — распознаёт процессор.",
+    gpuOff: "Сейчас распознаёт процессор: для диктовки этого хватает. С {gpu} длинные записи и файлы распознаются в разы быстрее. Скачается около 2,5 ГБ (на диске ~3,7 ГБ), программа закроется и через несколько минут откроется сама.",
+    gpuNone: "Нужна видеокарта NVIDIA — на этом компьютере её не нашлось. Распознаёт процессор.",
+    gpuEnable: "Включить", gpuDisable: "Отключить", gpuSure: "Точно?",
+    gpuDisableD: "Отключение удалит ~3,7 ГБ и вернёт лёгкую версию.", gpuBusy: "Сначала завершите запись",
+    edInstall: "Установить · {gb} ГБ", edInstalling: "Скачиваю", edNotInstalled: "Не установлен", edReady: "Установлен", edGpu: "на видеокарте", edCpu: "на процессоре",
     edOn: "Включить редактор", edModes: "Где исправлять", edDict: "Диктовка (+1–2 с перед вставкой)", edRec: "Запись", edFiles: "Файлы", edYt: "YouTube (заодно расставит пунктуацию)",
     edTerms: "Ваши термины", edTermsD: "Через запятую — редактор будет писать их именно так. Слова из словаря замен добавляются сами.",
     edTest: "Проверить", edTestPh: "Вставьте сюда фразу, например: я открыл автор эффектс и нажал альт таб", edBefore: "Было", edAfter: "Стало",
@@ -642,7 +649,14 @@ const I18N = {
     upDone: "Update installed", upRestart: "Restart", upBanner: "Installed version", upRecBusy: "Finish the recording first",
     upDeps: "Some libraries didn't update — run update.bat",
     sEditor: "Editor", edT: "Editor model", edD: "A small neural network on your GPU fixes English names (After Effects, Figma, Alt+Tab), mistakes and punctuation. It doesn't rephrase.",
-    edInstall: "Install · 2.7 GB", edInstalling: "Downloading", edNotInstalled: "Not installed", edReady: "Installed", edGpu: "on GPU", edCpu: "on CPU",
+    gpuT: "Graphics card acceleration",
+    gpuOn: "On · {gpu}. Recognition runs on the graphics card — long files are processed several times faster.",
+    gpuOnIdle: "Installed, but no NVIDIA card is found right now — the processor is used.",
+    gpuOff: "The processor does the recognition now: enough for dictation. With {gpu} long recordings and files are processed several times faster. About 2.5 GB is downloaded (~3.7 GB on disk); the app closes and reopens by itself in a few minutes.",
+    gpuNone: "Needs an NVIDIA graphics card — none was found on this computer. The processor is used.",
+    gpuEnable: "Turn on", gpuDisable: "Turn off", gpuSure: "Sure?",
+    gpuDisableD: "Turning off removes ~3.7 GB and goes back to the light version.", gpuBusy: "Finish the recording first",
+    edInstall: "Install · {gb} GB", edInstalling: "Downloading", edNotInstalled: "Not installed", edReady: "Installed", edGpu: "on GPU", edCpu: "on CPU",
     edOn: "Enable editor", edModes: "Where to fix", edDict: "Dictation (+1–2 s before pasting)", edRec: "Recording", edFiles: "Files", edYt: "YouTube (also adds punctuation)",
     edTerms: "Your terms", edTermsD: "Comma-separated — the editor will spell them exactly like this. Words from the dictionary are added automatically.",
     edTest: "Test", edTestPh: "Paste a phrase here, e.g.: я открыл автор эффектс и нажал альт таб", edBefore: "Before", edAfter: "After",
@@ -1321,7 +1335,7 @@ async function pageSettings() {
       <h3>${t("sEditor")}</h3>
       <div class="card" id="edCard"></div>
       <h3>${t("sRecognition")}</h3>
-      <div class="card">${row(t("model"), t("modelD"), ddHtml("s-model", D.model, settings.model))}</div>
+      <div class="card">${row(t("model"), t("modelD"), ddHtml("s-model", D.model, settings.model))}<div id="gpuRow"></div></div>
       <h3>${t("sAppearance")}</h3>
       <div class="card">
         ${row(t("lang"), "", ddHtml("s-lang", D.lang, settings.ui_lang))}
@@ -1371,6 +1385,7 @@ async function pageSettings() {
   ddBind("s-zoom", D.zoom, (v) => applyZoom(parseFloat(v), true, true));
   renderEditor();
   renderMyStyle();
+  renderGpu();
   const bindTog = (id, key) => $("#" + id).onchange = (e) => set(key, e.target.checked);
   ddBind("s-lp", D.lp, (v) => set("long_paragraphs", v));
   bindTog("s-clean", "clean"); bindTog("s-fill", "clean_fillers");
@@ -1388,6 +1403,35 @@ async function pageSettings() {
 
 /* ---------- editor model card ---------- */
 let edPoll = null;
+/* ---------- graphics card acceleration ---------- */
+async function renderGpu() {
+  const box = $("#gpuRow"); if (!box) return;
+  const g = await api.gpu_status();
+  if (!$("#gpuRow")) return;
+  const gpu = g.nvidia || "NVIDIA";
+  let desc, btn = "";
+  if (g.cuda) {
+    desc = (g.active ? t("gpuOn").replace("{gpu}", esc(gpu)) : t("gpuOnIdle")) + " " + t("gpuDisableD");
+    btn = `<button class="btn secondary danger" id="gpuBtn" data-mode="cpu"><span>${t("gpuDisable")}</span></button>`;
+  } else if (g.nvidia) {
+    desc = t("gpuOff").replace("{gpu}", esc(gpu));
+    btn = `<button class="btn primary" id="gpuBtn" data-mode="gpu"><span>${t("gpuEnable")}</span></button>`;
+  } else {
+    desc = t("gpuNone");
+  }
+  box.innerHTML = `<div class="srow" style="box-shadow: var(--divider) 0 1px 0 0 inset"><div class="sl"><b>${t("gpuT")}</b><small>${desc}</small></div>${btn}</div>`;
+  const b = $("#gpuBtn"); if (!b) return;
+  b.onclick = async () => {
+    if (!b.dataset.armed) {
+      b.dataset.armed = "1"; const old = b.querySelector("span").textContent; b.querySelector("span").textContent = t("gpuSure");
+      setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.querySelector("span").textContent = old; } }, 3000);
+      return;
+    }
+    const r = await api.gpu_switch(b.dataset.mode);
+    if (!r.ok) toast(r.error === "recording" ? t("gpuBusy") : r.error);
+  };
+}
+
 /* ---------- my chat style ---------- */
 let msHas = false;
 async function renderMyStyle(pick) {
@@ -1473,7 +1517,7 @@ async function renderEditor() {
   if (!st.installed) {
     box.innerHTML = `<div class="srow"><div class="sl"><b>${t("edT")}</b><small>${t("edD")}</small>
       ${st.error ? `<small style="color:var(--red)">${t("edErr")}: ${esc(st.error)}</small>` : ""}</div>
-      <button class="btn primary" id="edInstall">${t("edInstall")}</button></div>`;
+      <button class="btn primary" id="edInstall">${t("edInstall").replace("{gb}", ((st.need || 2.7e9) / 1e9).toLocaleString(LANG, {maximumFractionDigits: 1}))}</button></div>`;
     $("#edInstall").onclick = async () => { await api.editor_install(); setTimeout(renderEditor, 300); };
     return;
   }
