@@ -1,0 +1,17 @@
+# per-machine install
+.venv/
+tools/
+cache/
+models/
+logs/
+__pycache__/
+*.pyc
+
+# user data — never published, never overwritten by updates
+config.json
+dictionary.txt
+history.txt
+transcripts/
+recordings/
+*.wav
+README.txt

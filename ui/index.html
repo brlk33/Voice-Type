@@ -1,0 +1,1395 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VoiceType</title>
+<style>
+/* ---------- Notion palette ---------- */
+:root, [data-theme=light] {
+  --bg: #ffffff;
+  --sidebar: #f7f7f5;
+  --text: #37352f;
+  --text-2: rgba(55, 53, 47, .65);
+  --text-3: rgba(55, 53, 47, .45);
+  --hover: rgba(55, 53, 47, .06);
+  --active: rgba(55, 53, 47, .1);
+  --divider: rgba(55, 53, 47, .08);
+  --border: rgba(55, 53, 47, .14);
+  --card: rgba(55, 53, 47, .024);
+  --popover: #ffffff;
+  --blue: #2383e2;
+  --blue-hover: #0077d4;
+  --blue-soft: rgba(35, 131, 226, .08);
+  --red: #e03e3e;
+  --close-hover: #e81123;
+  --shadow: rgba(15, 15, 15, .04) 0 0 0 1px, rgba(15, 15, 15, .06) 0 4px 10px, rgba(15, 15, 15, .1) 0 14px 32px;
+  --tag-gray-bg: rgba(227, 226, 224, .6);  --tag-gray: #32302c;
+  --tag-blue-bg: #d3e5ef;   --tag-blue: #183347;
+  --tag-green-bg: #dbeddb;  --tag-green: #1c3829;
+  --tag-red-bg: #ffe2dd;    --tag-red: #5d1715;
+  --toggle-off: rgba(135, 131, 120, .28);
+  --scroll: rgba(55, 53, 47, .16);
+  color-scheme: light;
+}
+[data-theme=dark] {
+  --bg: #191919;
+  --sidebar: #202020;
+  --text: rgba(255, 255, 255, .81);
+  --text-2: rgba(255, 255, 255, .46);
+  --text-3: rgba(255, 255, 255, .282);
+  --hover: rgba(255, 255, 255, .055);
+  --active: rgba(255, 255, 255, .09);
+  --divider: rgba(255, 255, 255, .075);
+  --border: rgba(255, 255, 255, .12);
+  --card: rgba(255, 255, 255, .025);
+  --popover: #252525;
+  --blue: #2383e2;
+  --blue-hover: #0077d4;
+  --blue-soft: rgba(35, 131, 226, .14);
+  --red: #ff7369;
+  --close-hover: #e81123;
+  --shadow: rgba(0, 0, 0, .2) 0 0 0 1px, rgba(0, 0, 0, .25) 0 4px 10px, rgba(0, 0, 0, .4) 0 14px 32px;
+  --tag-gray-bg: rgba(255, 255, 255, .094); --tag-gray: rgba(255, 255, 255, .81);
+  --tag-blue-bg: #28456c;   --tag-blue: rgba(255, 255, 255, .88);
+  --tag-green-bg: #2b593f;  --tag-green: rgba(255, 255, 255, .88);
+  --tag-red-bg: #6e3630;    --tag-red: rgba(255, 255, 255, .88);
+  --toggle-off: rgba(202, 204, 206, .26);
+  --scroll: rgba(255, 255, 255, .16);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
+  font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+  overflow: hidden; user-select: none; cursor: default;
+}
+button, input { font: inherit; color: inherit; }
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-thumb { background: var(--scroll); border-radius: 12px; border: 3px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background-color: var(--text-3); }
+::-webkit-scrollbar-track { background: transparent; }
+svg { display: block; }
+.ease { transition: background .15s ease, color .15s ease, box-shadow .15s ease, opacity .15s ease; }
+
+.layout { display: grid; grid-template-columns: 252px 1fr; height: 100%; }
+
+/* ---------- window chrome ---------- */
+.resize { position: fixed; z-index: 50; }
+.resize.n { top: 0; left: 8px; right: 8px; height: 4px; cursor: ns-resize; }
+.resize.s { bottom: 0; left: 8px; right: 8px; height: 5px; cursor: ns-resize; }
+.resize.w { left: 0; top: 8px; bottom: 8px; width: 5px; cursor: ew-resize; }
+.resize.e { right: 0; top: 8px; bottom: 8px; width: 5px; cursor: ew-resize; }
+.resize.nw { left: 0; top: 0; width: 10px; height: 10px; cursor: nwse-resize; }
+.resize.ne { right: 0; top: 0; width: 10px; height: 10px; cursor: nesw-resize; }
+.resize.sw { left: 0; bottom: 0; width: 10px; height: 10px; cursor: nesw-resize; }
+.resize.se { right: 0; bottom: 0; width: 12px; height: 12px; cursor: nwse-resize; }
+body.maxed .resize { display: none; }
+.winctl { display: flex; align-items: stretch; height: 100%; margin-left: 8px; margin-right: -12px; }
+.winctl button {
+  width: 46px; border: 0; background: transparent; color: var(--text-2); cursor: default;
+  display: grid; place-items: center; transition: background .12s ease, color .12s ease;
+}
+.winctl button:hover { background: var(--hover); color: var(--text); }
+.winctl button.close:hover { background: var(--close-hover); color: #fff; }
+
+/* ---------- sidebar ---------- */
+aside {
+  background: var(--sidebar); display: flex; flex-direction: column; min-height: 0;
+  box-shadow: var(--divider) -1px 0 0 0 inset;
+}
+.ws { display: flex; align-items: center; gap: 12px; height: 64px; margin: 10px 10px 12px; padding: 0 10px; border-radius: 12px; }
+.ws .wicon { width: 38px; height: 38px; border-radius: 10px; background: #37352f; color: #fff; display: grid; place-items: center; flex: none; box-shadow: 0 1px 2px rgba(15, 15, 15, .12); }
+[data-theme=dark] .ws .wicon { background: #3b3a37; box-shadow: rgba(255, 255, 255, .08) 0 0 0 1px inset; }
+.ws .wname { font-weight: 700; font-size: 17px; color: var(--text); line-height: 1.2; letter-spacing: -.01em; }
+.ws .wstat { font-size: 12.5px; color: var(--text-3); display: flex; align-items: center; gap: 6px; line-height: 1.2; margin-top: 4px; }
+.sdot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-3); flex: none; }
+[data-s=ready] .sdot { background: #4dab9a; }
+[data-s=rec] .sdot { background: var(--red); animation: blink 1s infinite; }
+[data-s=busy] .sdot, [data-s=loading] .sdot { background: #ffa344; animation: blink 1s infinite; }
+[data-s=error] .sdot { background: var(--red); }
+@keyframes blink { 50% { opacity: .3; } }
+
+.nav { padding: 0 10px; display: flex; flex-direction: column; gap: 1px; }
+.navsep { height: 1px; background: var(--divider); margin: 9px 10px; flex: none; }
+.item {
+  display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border-radius: 8px;
+  color: var(--text-2); font-weight: 500; cursor: pointer; transition: background .12s ease, color .12s ease;
+  white-space: nowrap; overflow: hidden;
+}
+.item:hover { background: var(--hover); color: var(--text); }
+.item.on { background: var(--active); color: var(--text); }
+.item .em { width: 22px; height: 22px; display: grid; place-items: center; font-size: 16px; flex: none; }
+.item .lbl { overflow: hidden; text-overflow: ellipsis; flex: 1; }
+.item .del { opacity: 0; width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; color: var(--text-3); flex: none; transition: opacity .12s, background .12s; }
+.item:hover .del { opacity: 1; }
+.item .del:hover { background: var(--active); color: var(--text); }
+.section { font-size: 12px; font-weight: 500; color: var(--text-3); padding: 0 20px; margin: 22px 0 6px; height: 22px; display: flex; align-items: center; }
+.trlist { flex: 1; overflow-y: auto; padding: 0 10px 14px; min-height: 0; display: flex; flex-direction: column; gap: 1px; }
+.trlist .item, .nav .item { flex: none; }
+.trempty { color: var(--text-3); font-size: 13px; padding: 4px 10px; line-height: 1.45; }
+.dcard {
+  margin: 8px 12px 14px; padding: 14px 14px 13px; border-radius: 14px; background: var(--bg);
+  box-shadow: var(--divider) 0 0 0 1px inset, 0 1px 2px rgba(15, 15, 15, .03); cursor: pointer; transition: box-shadow .15s ease;
+}
+.dcard:hover { box-shadow: var(--border) 0 0 0 1px inset, 0 2px 8px rgba(15, 15, 15, .05); }
+.dcard .dtop { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13.5px; color: var(--text); }
+.dcard .dtop svg { color: var(--text-2); }
+.dcard .dkey { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--text-2); font-size: 13px; }
+.dcard .dkey kbd { font-size: 12.5px; height: 24px; display: inline-flex; align-items: center; padding: 0 9px; border-radius: 7px; background: var(--card); color: var(--text); box-shadow: var(--border) 0 0 0 1px inset, var(--border) 0 1.5px 0 0; }
+.dcard .dsub { color: var(--text-3); font-size: 12.5px; margin-top: 6px; line-height: 1.4; }
+.dcard[data-s=rec] { box-shadow: rgba(224, 62, 62, .45) 0 0 0 1.5px inset; }
+.dcard[data-s=rec] .dtop svg { color: var(--red); }
+
+/* ---------- main ---------- */
+.main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.topbar { height: 48px; flex: none; display: flex; align-items: center; padding: 0 12px 0 16px; gap: 4px; }
+.crumbs { display: flex; align-items: center; gap: 2px; min-width: 0; flex: 1; color: var(--text); height: 100%; }
+.crumb { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px; border-radius: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.crumb.link { cursor: pointer; transition: background .12s; } .crumb.link:hover { background: var(--hover); }
+.crumbs .sep { color: var(--text-3); padding: 0 2px; }
+.tbtn {
+  height: 32px; padding: 0 10px; border-radius: 8px; display: flex; align-items: center; gap: 6px;
+  border: 0; background: transparent; color: var(--text); cursor: pointer; transition: background .12s ease, color .12s ease; white-space: nowrap;
+}
+.tbtn:hover { background: var(--hover); }
+.tbtn.icon { width: 32px; padding: 0; justify-content: center; }
+.tbtn.on { color: var(--blue); background: var(--blue-soft); }
+.tbtn svg { color: var(--text-2); }
+.tbtn.on svg { color: var(--blue); }
+
+.scroller { flex: 1; overflow-y: auto; min-height: 0; }
+.page { max-width: 760px; width: calc(100% - 160px); margin: 0 auto; padding: 0 0 140px; }
+@media (max-width: 1000px) { .page { width: calc(100% - 80px); } }
+.picon { font-size: 64px; line-height: 1.1; margin-top: 56px; height: 72px; }
+h1 {
+  font-size: 40px; font-weight: 700; line-height: 1.2; margin: 14px 0 6px; padding: 3px 2px;
+  outline: none; word-break: break-word; letter-spacing: -.015em; border-radius: 8px;
+}
+h1[contenteditable=true] { cursor: text; user-select: text; transition: background .12s; }
+h1[contenteditable=true]:hover { background: var(--hover); }
+h1[contenteditable=true]:focus { background: transparent; }
+h1[contenteditable=true]:empty::before { content: attr(data-ph); color: var(--text-3); }
+.desc { color: var(--text-2); font-size: 16px; margin: 6px 2px 32px; line-height: 1.6; }
+h3 { font-size: 13px; font-weight: 600; margin: 40px 0 12px 4px; color: var(--text-2); letter-spacing: .01em; }
+
+.btn {
+  height: 36px; padding: 0 16px; border-radius: 10px; border: 0; cursor: pointer; font-weight: 500;
+  display: inline-flex; align-items: center; gap: 8px; transition: background .15s ease, box-shadow .15s ease, transform .1s ease;
+}
+.btn:active { transform: scale(.98); }
+.btn.primary { background: var(--blue); color: #fff; box-shadow: 0 1px 2px rgba(35, 131, 226, .25); }
+.btn.primary:hover { background: var(--blue-hover); }
+.btn.secondary { background: transparent; box-shadow: var(--border) 0 0 0 1px inset; color: var(--text); }
+.btn.secondary:hover { background: var(--hover); }
+
+/* drop zone */
+.drop {
+  border: 1.5px dashed var(--border); border-radius: 16px; padding: 56px 28px; text-align: center;
+  transition: background .15s ease, border-color .15s ease, transform .15s ease; background: var(--card);
+}
+.drop.over { background: var(--blue-soft); border-color: var(--blue); transform: scale(1.005); }
+.drop .big { font-size: 36px; line-height: 1; margin-bottom: 16px; }
+.drop .t1 { font-size: 17px; font-weight: 600; margin-bottom: 4px; }
+.drop .t2 { color: var(--text-2); margin-bottom: 22px; }
+.drop.compact { padding: 18px 20px; display: flex; align-items: center; gap: 14px; text-align: left; }
+.drop.compact .big { font-size: 24px; margin: 0; }
+.drop.compact .t2 { display: none; }
+.drop.compact .t1 { flex: 1; font-size: 14.5px; font-weight: 500; margin: 0; color: var(--text-2); }
+
+/* list rows */
+.rows { display: flex; flex-direction: column; gap: 4px; }
+.row {
+  display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 10px 14px;
+  border-radius: 12px; background: var(--card); transition: background .12s ease;
+}
+.row.click { cursor: pointer; } .row.click:hover { background: var(--hover); }
+.row .em { font-size: 18px; width: 24px; text-align: center; flex: none; }
+.row .name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .err { color: var(--red); font-size: 12.5px; white-space: normal; user-select: text; margin-top: 2px; }
+.tag { display: inline-flex; align-items: center; height: 24px; padding: 0 9px; border-radius: 8px; font-size: 12.5px; white-space: nowrap; line-height: 120%; font-weight: 500; }
+.tag.gray { background: var(--tag-gray-bg); color: var(--tag-gray); }
+.tag.blue { background: var(--tag-blue-bg); color: var(--tag-blue); }
+.tag.green { background: var(--tag-green-bg); color: var(--tag-green); }
+.tag.red { background: var(--tag-red-bg); color: var(--tag-red); }
+.prog { width: 96px; height: 6px; border-radius: 6px; background: var(--divider); overflow: hidden; flex: none; }
+.prog i { display: block; height: 100%; border-radius: 6px; background: var(--blue); transition: width .3s ease; }
+
+/* transcript page */
+.props { margin: 8px 0 8px; display: flex; flex-direction: column; gap: 2px; }
+.prop { display: flex; align-items: center; min-height: 36px; }
+.prop .pk { width: 168px; flex: none; display: flex; align-items: center; gap: 8px; color: var(--text-2); height: 36px; padding: 0 8px; }
+.prop .pk svg { color: var(--text-3); }
+.prop .pv { flex: 1; min-width: 0; padding: 0 10px; height: 36px; display: flex; align-items: center; border-radius: 8px; overflow: hidden; transition: background .12s; }
+.prop .pv span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prop .pv.link { cursor: pointer; } .prop .pv.link:hover { background: var(--hover); }
+.hr { height: 1px; background: var(--divider); margin: 24px 0 28px; }
+.doc { font-size: 16px; line-height: 1.7; user-select: text; cursor: text; }
+.doc p { margin: 0; padding: 2px 2px; white-space: pre-wrap; word-break: break-word; }
+.doc p + p { margin-top: 14px; }
+.doc .ts { color: var(--text-3); font-size: 13px; font-variant-numeric: tabular-nums; margin-right: 10px; user-select: none; background: var(--hover); padding: 1px 6px; border-radius: 6px; }
+.doc .none { color: var(--text-3); }
+::selection { background: rgba(35, 131, 226, .28); }
+
+/* history */
+.hlist { display: flex; flex-direction: column; gap: 2px; }
+.hrow { display: flex; gap: 16px; padding: 12px 14px; border-radius: 12px; cursor: pointer; align-items: baseline; transition: background .12s ease; }
+.hrow:hover { background: var(--hover); }
+.hrow time { color: var(--text-3); font-size: 12.5px; white-space: nowrap; width: 80px; flex: none; font-variant-numeric: tabular-nums; }
+.hrow .t { flex: 1; font-size: 15px; line-height: 1.6; }
+.hrow .cp { opacity: 0; color: var(--text-3); flex: none; transition: opacity .12s; align-self: center; }
+.hrow:hover .cp { opacity: 1; }
+.empty { color: var(--text-3); padding: 28px 4px; }
+
+/* dictionary table */
+.table { width: 100%; border-radius: 14px; box-shadow: var(--divider) 0 0 0 1px inset; overflow: hidden; }
+.tr { display: grid; grid-template-columns: 1fr 1fr 40px; }
+.tr + .tr { box-shadow: var(--divider) 0 1px 0 0 inset; }
+.tr > div { min-height: 42px; display: flex; align-items: center; }
+.tr.th > div { color: var(--text-2); font-size: 13px; gap: 8px; padding: 0 14px; height: 40px; background: var(--card); }
+.tr.th svg { color: var(--text-3); }
+.tr input { width: 100%; border: 0; background: transparent; outline: none; padding: 10px 14px; user-select: text; border-radius: 8px; transition: background .12s, box-shadow .12s; }
+.tr input:hover { background: var(--hover); }
+.tr input:focus { box-shadow: var(--blue) 0 0 0 1.5px inset; background: var(--bg); }
+.tr > div:not(.x) { padding: 3px; }
+.tr .x { opacity: 0; justify-content: center; cursor: pointer; color: var(--text-3); transition: opacity .12s, color .12s; }
+.tr:hover .x { opacity: 1; }
+.tr .x:hover { color: var(--red); }
+.addrow { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; margin-top: 10px; color: var(--text-2); cursor: pointer; border-radius: 10px; transition: background .12s; }
+.addrow:hover { background: var(--hover); color: var(--text); }
+
+/* settings */
+.card { border-radius: 16px; background: var(--card); box-shadow: var(--divider) 0 0 0 1px inset; padding: 4px 6px; }
+.srow { display: flex; align-items: center; gap: 28px; padding: 14px 14px; min-height: 60px; }
+.srow + .srow { box-shadow: var(--divider) 0 1px 0 0 inset; }
+.srow .sl { flex: 1; }
+.srow .sl b { display: block; font-weight: 500; font-size: 14px; }
+.srow .sl small { display: block; color: var(--text-2); font-size: 12.5px; line-height: 1.5; margin-top: 3px; max-width: 420px; }
+.toggle { position: relative; width: 36px; height: 22px; flex: none; cursor: pointer; }
+.toggle input { position: absolute; opacity: 0; }
+.toggle i { position: absolute; inset: 0; border-radius: 22px; background: var(--toggle-off); transition: background .2s ease; }
+.toggle i::after { content: ""; position: absolute; width: 18px; height: 18px; left: 2px; top: 2px; border-radius: 50%; background: #fff; transition: transform .2s cubic-bezier(.3, .7, .4, 1); box-shadow: 0 1px 3px rgba(0, 0, 0, .18); }
+.toggle input:checked + i { background: var(--blue); }
+.toggle input:checked + i::after { transform: translateX(14px); }
+
+.example { margin: 0 14px 14px; padding: 12px 14px; border-radius: 12px; background: var(--bg); box-shadow: var(--divider) 0 0 0 1px inset; font-size: 14.5px; line-height: 1.6; white-space: pre-wrap; }
+.example small { display: block; color: var(--text-3); font-size: 12px; margin-bottom: 4px; }
+.cardnote { color: var(--text-3); font-size: 12.5px; margin: 10px 6px 0; }
+
+
+/* recorder */
+.recbox { border-radius: 20px; background: var(--card); box-shadow: var(--divider) 0 0 0 1px inset; padding: 22px 24px 24px; }
+.rechead { display: flex; align-items: center; gap: 14px; }
+.timer { font-size: 44px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1; }
+.rstate { display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 12px; border-radius: 14px; font-size: 13px; font-weight: 500; background: var(--hover); color: var(--text-2); margin-left: auto; }
+.rstate i { width: 8px; height: 8px; border-radius: 50%; background: var(--text-3); }
+.rstate.rec { background: rgba(224, 62, 62, .1); color: var(--red); }
+.rstate.rec i { background: var(--red); animation: blink 1.1s infinite; }
+.rstate.paused { background: rgba(255, 163, 68, .14); color: #d9730d; }
+.rstate.paused i { background: #ffa344; }
+.rstate.finishing { background: var(--blue-soft); color: var(--blue); }
+.rstate.finishing i { background: var(--blue); animation: blink 1.1s infinite; }
+.wave { position: relative; height: 132px; margin: 20px 0 22px; border-radius: 14px; background: var(--bg); box-shadow: var(--divider) 0 0 0 1px inset; overflow: hidden; }
+.wave canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.wave .ph { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-3); font-size: 13px; }
+.controls { display: flex; align-items: center; justify-content: center; gap: 18px; }
+.rbtn { border: 0; cursor: pointer; display: grid; place-items: center; border-radius: 50%; transition: transform .1s ease, background .15s ease, box-shadow .15s ease, opacity .15s; }
+.rbtn:active { transform: scale(.95); }
+.rbtn.big { width: 68px; height: 68px; background: var(--red); color: #fff; box-shadow: 0 2px 8px rgba(224, 62, 62, .35); }
+.rbtn.big:hover { box-shadow: 0 4px 14px rgba(224, 62, 62, .45); }
+.rbtn.big.stop { background: var(--text); color: var(--bg); box-shadow: 0 2px 8px rgba(15, 15, 15, .2); }
+.rbtn.mid { width: 52px; height: 52px; background: var(--bg); color: var(--text); box-shadow: var(--border) 0 0 0 1px inset; }
+.rbtn.mid:hover { background: var(--hover); }
+.rbtn.small { width: 40px; height: 40px; background: transparent; color: var(--text-3); }
+.rbtn.small:hover { background: var(--hover); color: var(--red); }
+.rbtn[disabled] { opacity: .35; pointer-events: none; }
+.rlabels { display: flex; justify-content: center; gap: 18px; margin-top: 8px; color: var(--text-3); font-size: 12px; }
+.rlabels span { text-align: center; }
+.rnote { color: var(--text-3); font-size: 12.5px; margin-top: 14px; text-align: center; line-height: 1.5; }
+.livehead { display: flex; align-items: baseline; gap: 10px; }
+.livehead small { color: var(--text-3); font-size: 12.5px; font-weight: 400; }
+.item .live { margin-left: auto; font-size: 12px; color: var(--red); font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 6px; }
+.item .live i { width: 6px; height: 6px; border-radius: 50%; background: var(--red); animation: blink 1.1s infinite; }
+.item .live.paused { color: #d9730d; } .item .live.paused i { background: #ffa344; animation: none; }
+
+
+/* youtube */
+.ytbox { border-radius: 18px; background: var(--card); box-shadow: var(--divider) 0 0 0 1px inset; padding: 18px; }
+.ytrow { display: flex; gap: 10px; align-items: center; }
+.ytin {
+  flex: 1; height: 44px; border: 0; border-radius: 12px; padding: 0 14px 0 42px; outline: none; font-size: 15px;
+  background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%239b9a97' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7'/%3E%3Cpath d='M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7'/%3E%3C/svg%3E") no-repeat 14px center;
+  box-shadow: var(--border) 0 0 0 1px inset; transition: box-shadow .15s; user-select: text;
+}
+.ytin:focus { box-shadow: var(--blue) 0 0 0 1.5px inset; }
+.ytin::placeholder { color: var(--text-3); }
+.ytopts { display: flex; align-items: center; gap: 10px; margin-top: 12px; color: var(--text-2); font-size: 13px; }
+.ytopts .sp { flex: 1; }
+.ytopts > span:first-child { white-space: nowrap; }
+.btn.lg { height: 44px; padding: 0 20px; border-radius: 12px; }
+.row .sub { color: var(--text-3); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+
+/* update banner */
+.upcard { margin: 0 12px 10px; padding: 12px 14px; border-radius: 14px; background: var(--blue-soft); display: none; }
+.upcard.on { display: block; }
+.upcard b { display: block; font-size: 13px; font-weight: 600; color: var(--text); }
+.upcard small { display: block; font-size: 12px; color: var(--text-2); margin: 2px 0 10px; }
+.upcard .btn { height: 30px; padding: 0 12px; border-radius: 9px; font-size: 13px; }
+
+
+/* editor */
+.edbar { height: 6px; border-radius: 6px; background: var(--divider); overflow: hidden; margin-top: 8px; width: 240px; }
+.edbar i { display: block; height: 100%; background: var(--blue); border-radius: 6px; transition: width .3s; }
+.edstate { color: var(--text-2); font-size: 12.5px; display: flex; align-items: center; gap: 6px; }
+.edstate .ok { width: 7px; height: 7px; border-radius: 50%; background: #4dab9a; }
+.subtog { display: flex; flex-direction: column; gap: 10px; }
+.subtog label.ck { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.ck input { width: 16px; height: 16px; accent-color: var(--blue); cursor: pointer; }
+.edterms, .edtest { width: 100%; min-height: 64px; resize: vertical; border: 0; border-radius: 10px; padding: 10px 12px; font: inherit; color: var(--text);
+  background: var(--bg); box-shadow: var(--border) 0 0 0 1px inset; outline: none; user-select: text; line-height: 1.5; }
+.edterms:focus, .edtest:focus { box-shadow: var(--blue) 0 0 0 1.5px inset; }
+.edwrap { padding: 4px 14px 16px; }
+.edwrap small { display: block; color: var(--text-2); font-size: 12.5px; margin: 2px 0 8px; }
+.edres { margin-top: 10px; display: grid; grid-template-columns: 1fr; gap: 6px; }
+.edres div { padding: 10px 12px; border-radius: 10px; background: var(--bg); box-shadow: var(--divider) 0 0 0 1px inset; user-select: text; line-height: 1.55; }
+.edres b { display: block; font-size: 11.5px; color: var(--text-3); font-weight: 500; margin-bottom: 2px; }
+.linkbtn { border: 0; background: none; color: var(--text-3); cursor: pointer; font-size: 12.5px; padding: 4px 0; }
+.linkbtn:hover { color: var(--red); }
+
+/* dropdown (replaces native select) */
+.dd {
+  display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px 0 12px; max-width: 280px;
+  border-radius: 10px; border: 0; background: var(--bg); box-shadow: var(--border) 0 0 0 1px inset;
+  cursor: pointer; color: var(--text); transition: background .12s ease, box-shadow .12s ease;
+}
+.dd:hover { background: var(--hover); }
+.dd.open { box-shadow: var(--blue) 0 0 0 1.5px inset; }
+.dd span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dd svg { color: var(--text-3); flex: none; transition: transform .15s ease; }
+.dd.open svg { transform: rotate(180deg); }
+.menu {
+  position: fixed; z-index: 100; min-width: 200px; max-width: 340px; max-height: 320px; overflow-y: auto;
+  background: var(--popover); border-radius: 12px; box-shadow: var(--shadow); padding: 6px;
+  opacity: 0; transform: translateY(-4px) scale(.98); transform-origin: top; transition: opacity .12s ease, transform .12s ease;
+}
+.menu.on { opacity: 1; transform: none; }
+.menu .mi {
+  display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border-radius: 8px; cursor: pointer;
+  white-space: nowrap; transition: background .1s ease;
+}
+.menu .mi:hover, .menu .mi.kb { background: var(--hover); }
+.menu .mi span { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.menu .mi svg { color: var(--blue); visibility: hidden; flex: none; }
+.menu .mi.sel svg { visibility: visible; }
+
+/* toast */
+.toast {
+  position: fixed; left: 50%; bottom: 36px; transform: translate(-50%, 10px); opacity: 0; pointer-events: none;
+  background: var(--popover); box-shadow: var(--shadow); color: var(--text); padding: 10px 16px; border-radius: 12px;
+  font-size: 14px; transition: opacity .18s ease, transform .18s ease; display: flex; gap: 8px; align-items: center;
+}
+.toast.on { opacity: 1; transform: translate(-50%, 0); }
+kbd { font: inherit; font-size: 11.5px; padding: 1px 6px; border-radius: 6px; background: var(--hover); color: var(--text-2); box-shadow: var(--border) 0 0 0 1px inset; }
+</style>
+</head>
+<body>
+<div class="resize n" data-e="n"></div><div class="resize s" data-e="s"></div><div class="resize w" data-e="w"></div><div class="resize e" data-e="e"></div>
+<div class="resize nw" data-e="nw"></div><div class="resize ne" data-e="ne"></div><div class="resize sw" data-e="sw"></div><div class="resize se" data-e="se"></div>
+<div class="layout">
+  <aside>
+    <div class="ws" id="ws" data-s="loading">
+      <div class="wicon"><svg width="21" height="21" viewBox="0 0 14 14"><g fill="currentColor"><rect x="1" y="5" width="2" height="4" rx="1"/><rect x="4.5" y="2" width="2" height="10" rx="1"/><rect x="8" y="3.5" width="2" height="7" rx="1"/><rect x="11.5" y="5.5" width="2" height="3" rx="1"/></g></svg></div>
+      <div><div class="wname">VoiceType</div><div class="wstat"><span class="sdot"></span><span id="statusText"></span></div></div>
+    </div>
+    <div class="nav">
+      <div class="item" data-page="record"><span class="em">🎙️</span><span class="lbl" data-i="navRecord"></span><span class="live" id="navLive" style="display:none"><i></i><b id="navTime"></b></span></div>
+      <div class="item" data-page="youtube"><span class="em">📺</span><span class="lbl" data-i="navYt"></span></div>
+      <div class="item" data-page="files"><span class="em">📥</span><span class="lbl" data-i="navFiles"></span></div>
+      <div class="navsep"></div>
+      <div class="item" data-page="history"><span class="em">🕘</span><span class="lbl" data-i="navHistory"></span></div>
+      <div class="item" data-page="dict"><span class="em">📖</span><span class="lbl" data-i="navDict"></span></div>
+      <div class="item" data-page="settings"><span class="em">⚙️</span><span class="lbl" data-i="navSettings"></span></div>
+    </div>
+    <div class="section" data-i="transcripts"></div>
+    <div class="trlist" id="trlist"></div>
+    <div class="upcard" id="upcard"><b>🎉 <span data-i="upDone"></span></b><small id="upText"></small><button class="btn primary" id="upRestart"></button></div>
+    <div class="dcard" id="dcard" data-s="loading">
+      <div class="dtop"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="5.5" y="1.5" width="5" height="8.5" rx="2.5"/><path d="M3 8a5 5 0 0 0 10 0M8 13v1.5"/></svg><span data-i="dictation"></span></div>
+      <div class="dkey"><span id="dHold"></span><kbd id="dKey"></kbd></div>
+      <div class="dsub" data-i="anyApp"></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="crumbs" id="crumbs"></div>
+      <div id="actions" style="display:flex;gap:2px"></div>
+      <div class="winctl">
+        <button data-w="min" title=""><svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 5.5h10" stroke="currentColor" stroke-width="1"/></svg></button>
+        <button data-w="max" title=""><svg width="10" height="10" viewBox="0 0 10 10" id="maxIcon"><rect x=".5" y=".5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1"/></svg></button>
+        <button data-w="close" class="close" title=""><svg width="10" height="10" viewBox="0 0 10 10"><path d="M.5.5l9 9M9.5.5l-9 9" stroke="currentColor" stroke-width="1"/></svg></button>
+      </div>
+    </div>
+    <div class="scroller" id="scroller"><div id="view"></div></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- i18n ---------- */
+const I18N = {
+  ru: {
+    navFiles: "Распознать файл", navHistory: "История диктовок", navDict: "Словарь", navSettings: "Настройки",
+    transcripts: "Транскрипты", noTranscripts: "Здесь появятся распознанные файлы",
+    st_loading: "Загрузка модели…", st_ready: "Готов", st_rec: "Запись…", st_busy: "Распознаю…", st_error: "Ошибка",
+    hold: "Держите", press: "Нажмите", hintTail: "и говорите", dictation: "Диктовка", anyApp: "в любом окне и говорите — текст вставится сам",
+    filesDesc: "Перетащите аудио или видео в это окно — текст появится здесь же, в разделе «Транскрипты».",
+    dropT1: "Перетащите аудио или видео сюда", dropT2: "Аудио: mp3, m4a, wav, ogg, opus, flac. Видео: mp4, mkv, mov, avi, webm и другие — звук извлечётся сам. Любой длины.", pick: "Выбрать файлы",
+    queue: "Очередь", qWait: "В очереди", qRead: "Читаю файл", qRun: "Распознаю", qDone: "Готово", qErr: "Ошибка",
+    dropFail: "Не удалось получить файл. Попробуйте кнопку «Выбрать файлы».",
+    pDuration: "Длительность", pCreated: "Создано", pSource: "Источник", pModel: "Модель", pWords: "Слов",
+    noSpeech: "Речь не найдена.", copy: "Копировать", copied: "Скопировано", timestamps: "Тайм-коды",
+    exportTxt: "Сохранить .txt", saved: "Сохранено", del: "Удалить", deleted: "Удалено", untitled: "Без названия",
+    histDesc: "Всё, что вы надиктовали. Нажмите на строку, чтобы скопировать.", clear: "Очистить",
+    histEmpty: "Пока пусто. Зажмите клавишу диктовки и скажите что-нибудь.",
+    dictDesc: "Модель пишет английские слова кириллицей. Здесь — что на что заменять. Изменения сохраняются сразу.",
+    heard: "Слышу", written: "Пишу", newRow: "Новая строка",
+    sDictation: "Диктовка", sRecognition: "Распознавание", sAppearance: "Внешний вид", sSystem: "Система",
+    hotkey: "Клавиша диктовки", mode: "Режим", modeD: "Удерживать — говорите, пока клавиша нажата. Нажатие — нажали, говорите, нажали снова.",
+    modeHold: "Удерживать", modeToggle: "Нажатие", mic: "Микрофон", micDefault: "Как в Windows",
+    sounds: "Звук начала и конца записи", overlay: "Плашка записи внизу экрана", space: "Пробел после вставленного текста",
+    model: "Модель", modelD: "Точная (rnnt) или быстрая (ctc). На видеокарте разница в скорости почти незаметна.",
+    modelRnnt: "Точная", modelCtc: "Быстрая", lang: "Язык интерфейса", theme: "Тема",
+    themeSystem: "Как в системе", themeLight: "Светлая", themeDark: "Тёмная",
+    autostart: "Запускать вместе с Windows", autostartD: "Тихо, в трей",
+    keys: {ctrl_r: "Правый Ctrl", alt_r: "Правый Alt", shift_r: "Правый Shift", caps_lock: "Caps Lock", scroll_lock: "Scroll Lock", pause: "Pause", insert: "Insert", f8: "F8", f9: "F9", f10: "F10"},
+    sStyle: "Стиль текста", style: "Стиль", styleD: "Как оформлять надиктованный текст. Названия и английские слова не меняются.",
+    stFormal: "Обычный", stCasual: "Непринуждённый", stVery: "Очень непринуждённый",
+    exFormal: "Привет. Как дела? Скинь ссылку на GitHub.", exCasual: "привет. как дела? скинь ссылку на GitHub", exVery: "привет как дела? скинь ссылку на GitHub",
+    example: "Пример", paras: "Абзацы по паузам", parasD: "Замолчали дольше заданного — текст начнётся с нового абзаца.",
+    pause: "Пауза для нового абзаца", pShort: "Короткая · 0,8 с", pMid: "Средняя · 1,2 с", pLong: "Длинная · 2 с",
+    styleNote: "Стиль и абзацы — для диктовки. Очистка речи работает везде: в диктовке, записи и файлах.",
+    navRecord: "Запись", recDesc: "Говорите сколько угодно — хоть час. Текст распознаётся прямо по ходу записи. Аудиофайл не сохраняется — остаётся только текст.",
+    recIdle: "Готово к записи", recRec: "Идёт запись", recPaused: "Пауза", recFinishing: "Дописываю текст…",
+    recStart: "Начать", recPause: "Пауза", recResume: "Продолжить", recStop: "Завершить", recCancel: "Удалить",
+    recCancelQ: "Удалить эту запись вместе с аудио?", recWaveIdle: "Здесь появится аудиоволна",
+    recLive: "Текст по ходу записи", recLag: "появляется с задержкой примерно 20 секунд",
+    recNoModel: "Модель ещё загружается, подождите пару секунд.", recMicErr: "Не удалось открыть микрофон",
+    recNote: "Пока идёт запись, диктовка по клавише отключена. Можно свернуть окно — запись продолжится, а в углу экрана появится мини-плеер.",
+    recEmpty: "Начните говорить — первые абзацы появятся здесь.",
+    cleanT: "Убирать «э-э», «м-м» и повторы", cleanD: "Заминки и подряд повторённые слова и фразы: «я хотел я хотел сказать» → «я хотел сказать».",
+    fillT: "Убирать слова-паразиты", fillD: "Типа, как бы, короче, в общем, так сказать, это самое, «ну» в начале фразы. Изредка может убрать нужное слово.",
+    srcMic: "Запись с микрофона",
+    lpT: "Абзацы в записи и файлах", lpD: "Как делить длинный текст. Короткие паузы внутри фразы склеиваются в одно предложение.",
+    lpLong: "Редко — после пауз от 2,5 с", lpChunk: "Каждые 15–20 секунд", lpNone: "Без абзацев",
+    navYt: "YouTube", ytDesc: "Вставьте ссылку на видео — текст возьмётся из субтитров YouTube. Видео и звук не скачиваются, это занимает пару секунд.",
+    ytPh: "https://www.youtube.com/watch?v=…", ytGo: "Получить текст", ytLang: "Язык субтитров",
+    ytOrig: "Как в видео", ytRu: "Русский", ytEn: "English",
+    ytNote: "В автоматических субтитрах YouTube обычно нет знаков препинания.",
+    ytBad: "Это не похоже на ссылку на YouTube-видео.", ytWait: "В очереди", ytRun: "Получаю субтитры", ytDone: "Готово",
+    err_nosubs: "У этого видео нет субтитров", err_network: "Не удалось получить данные с YouTube. Проверьте интернет и VPN.",
+    err_badurl: "Неверная ссылка", err_format: "Неподдерживаемый формат субтитров", err_other: "Ошибка",
+    pChannel: "Канал", pLink: "Ссылка", pSubs: "Субтитры", subManual: "от автора", subAuto: "автоматические", subTr: "машинный перевод",
+    zoom: "Масштаб", zoomT: "Масштаб интерфейса", zoomD: "Также Ctrl + «+» / Ctrl + «−», Ctrl + колесо мыши. Ctrl + 0 — сбросить.",
+    miniT: "Мини-плеер записи", miniD: "Когда идёт запись, а окно свёрнуто — в углу экрана появляется плавающая панель с таймером, паузой и кнопкой «Завершить». Её можно перетаскивать.",
+    sUpdates: "Обновления", upAuto: "Обновляться автоматически", upAutoD: "При запуске программа проверяет GitHub и ставит новую версию. Ваши настройки, словарь, история и транскрипты не затрагиваются.",
+    upVer: "Версия", upCheck: "Проверить", upChecking: "Проверяю…", upLatest: "Установлена последняя версия", upErr: "Не удалось проверить обновления",
+    upDone: "Обновление установлено", upRestart: "Перезапустить", upBanner: "Установлена версия", upRecBusy: "Сначала завершите запись",
+    upDeps: "Не все библиотеки обновились — запустите update.bat",
+    sEditor: "Редактор", edT: "Модель-редактор", edD: "Небольшая нейросеть на вашей видеокарте исправляет английские названия (After Effects, Figma, Alt+Tab), ошибки и пунктуацию. Не перефразирует.",
+    edInstall: "Установить · 2,7 ГБ", edInstalling: "Скачиваю", edNotInstalled: "Не установлен", edReady: "Установлен", edGpu: "на видеокарте", edCpu: "на процессоре",
+    edOn: "Включить редактор", edModes: "Где исправлять", edDict: "Диктовка (+1–2 с перед вставкой)", edRec: "Запись", edFiles: "Файлы", edYt: "YouTube (заодно расставит пунктуацию)",
+    edTerms: "Ваши термины", edTermsD: "Через запятую — редактор будет писать их именно так. Слова из словаря замен добавляются сами.",
+    edTest: "Проверить", edTestPh: "Вставьте сюда фразу, например: я открыл автор эффектс и нажал альт таб", edBefore: "Было", edAfter: "Стало",
+    edRemove: "Удалить редактор", edErr: "Ошибка установки", edEditing: "Редактирую",
+    h: "ч", m: "мин", s: "с",
+  },
+  en: {
+    navFiles: "Transcribe file", navHistory: "Dictation history", navDict: "Dictionary", navSettings: "Settings",
+    transcripts: "Transcripts", noTranscripts: "Transcribed files will appear here",
+    st_loading: "Loading model…", st_ready: "Ready", st_rec: "Recording…", st_busy: "Transcribing…", st_error: "Error",
+    hold: "Hold", press: "Press", hintTail: "and speak", dictation: "Dictation", anyApp: "in any app and speak — the text is pasted for you",
+    filesDesc: "Drop audio or video into this window — the text will appear right here, under Transcripts.",
+    dropT1: "Drop audio or video here", dropT2: "Audio: mp3, m4a, wav, ogg, opus, flac. Video: mp4, mkv, mov, avi, webm and more — the sound is extracted automatically. Any length.", pick: "Choose files",
+    queue: "Queue", qWait: "Queued", qRead: "Reading file", qRun: "Transcribing", qDone: "Done", qErr: "Error",
+    dropFail: "Couldn't get the file. Try the Choose files button.",
+    pDuration: "Duration", pCreated: "Created", pSource: "Source", pModel: "Model", pWords: "Words",
+    noSpeech: "No speech found.", copy: "Copy", copied: "Copied", timestamps: "Timestamps",
+    exportTxt: "Save .txt", saved: "Saved", del: "Delete", deleted: "Deleted", untitled: "Untitled",
+    histDesc: "Everything you've dictated. Click a line to copy it.", clear: "Clear",
+    histEmpty: "Nothing yet. Hold the dictation key and say something.",
+    dictDesc: "The model writes English words in Cyrillic. Set replacements here. Changes save automatically.",
+    heard: "Heard", written: "Written", newRow: "New row",
+    sDictation: "Dictation", sRecognition: "Recognition", sAppearance: "Appearance", sSystem: "System",
+    hotkey: "Dictation key", mode: "Mode", modeD: "Hold — speak while the key is down. Toggle — press, speak, press again.",
+    modeHold: "Hold", modeToggle: "Toggle", mic: "Microphone", micDefault: "Windows default",
+    sounds: "Start and stop sounds", overlay: "Recording pill at the bottom of the screen", space: "Add a space after pasted text",
+    model: "Model", modelD: "Accurate (rnnt) or fast (ctc). On a GPU the speed difference is barely noticeable.",
+    modelRnnt: "Accurate", modelCtc: "Fast", lang: "Interface language", theme: "Theme",
+    themeSystem: "Use system setting", themeLight: "Light", themeDark: "Dark",
+    autostart: "Start with Windows", autostartD: "Quietly, in the tray",
+    keys: {ctrl_r: "Right Ctrl", alt_r: "Right Alt", shift_r: "Right Shift", caps_lock: "Caps Lock", scroll_lock: "Scroll Lock", pause: "Pause", insert: "Insert", f8: "F8", f9: "F9", f10: "F10"},
+    sStyle: "Text style", style: "Style", styleD: "How dictated text is formatted. Names and English words are left as they are.",
+    stFormal: "Formal", stCasual: "Casual", stVery: "Very casual",
+    exFormal: "Привет. Как дела? Скинь ссылку на GitHub.", exCasual: "привет. как дела? скинь ссылку на GitHub", exVery: "привет как дела? скинь ссылку на GitHub",
+    example: "Example", paras: "Paragraphs on pauses", parasD: "Pause longer than set — the text continues in a new paragraph.",
+    pause: "Pause for a new paragraph", pShort: "Short · 0.8 s", pMid: "Medium · 1.2 s", pLong: "Long · 2 s",
+    styleNote: "Style and paragraphs apply to dictation. Speech cleanup works everywhere: dictation, recording and files.",
+    navRecord: "Record", recDesc: "Talk for as long as you like — even an hour. Text is recognized while you record. No audio file is kept — only the text.",
+    recIdle: "Ready to record", recRec: "Recording", recPaused: "Paused", recFinishing: "Finishing the text…",
+    recStart: "Start", recPause: "Pause", recResume: "Resume", recStop: "Finish", recCancel: "Delete",
+    recCancelQ: "Delete this recording and its audio?", recWaveIdle: "The waveform will appear here",
+    recLive: "Live text", recLag: "appears with a delay of about 20 seconds",
+    recNoModel: "The model is still loading, wait a couple of seconds.", recMicErr: "Couldn't open the microphone",
+    recNote: "Dictation hotkey is off while recording. Minimize the window and recording continues, with a small player in the corner of the screen.",
+    recEmpty: "Start talking — the first paragraphs will appear here.",
+    cleanT: "Remove “uh”, “um” and repeats", cleanD: "Hesitations and words or phrases said twice in a row: “I wanted I wanted to say” → “I wanted to say”.",
+    fillT: "Remove filler words", fillD: "Russian fillers like типа, как бы, короче, в общем, так сказать. May occasionally remove a word you meant.",
+    srcMic: "Microphone recording",
+    lpT: "Paragraphs in recordings and files", lpD: "How long text is split. Short pauses inside a phrase are glued into one sentence.",
+    lpLong: "Rarely — after pauses of 2.5 s+", lpChunk: "Every 15–20 seconds", lpNone: "No paragraphs",
+    navYt: "YouTube", ytDesc: "Paste a video link — the text comes from YouTube subtitles. Nothing is downloaded, it takes a couple of seconds.",
+    ytPh: "https://www.youtube.com/watch?v=…", ytGo: "Get text", ytLang: "Subtitle language",
+    ytOrig: "Video's language", ytRu: "Русский", ytEn: "English",
+    ytNote: "YouTube's automatic subtitles usually have no punctuation.",
+    ytBad: "This doesn't look like a YouTube video link.", ytWait: "Queued", ytRun: "Getting subtitles", ytDone: "Done",
+    err_nosubs: "This video has no subtitles", err_network: "Couldn't reach YouTube. Check your internet and VPN.",
+    err_badurl: "Invalid link", err_format: "Unsupported subtitle format", err_other: "Error",
+    pChannel: "Channel", pLink: "Link", pSubs: "Subtitles", subManual: "by the author", subAuto: "automatic", subTr: "machine translation",
+    zoom: "Zoom", zoomT: "Interface size", zoomD: "Also Ctrl + “+” / Ctrl + “−” or Ctrl + mouse wheel. Ctrl + 0 resets.",
+    miniT: "Floating recorder", miniD: "While recording with the window minimized, a small floating panel with the timer, pause and Finish appears in the corner. You can drag it anywhere.",
+    sUpdates: "Updates", upAuto: "Update automatically", upAutoD: "On launch the app checks GitHub and installs the new version. Your settings, dictionary, history and transcripts are never touched.",
+    upVer: "Version", upCheck: "Check", upChecking: "Checking…", upLatest: "You have the latest version", upErr: "Couldn't check for updates",
+    upDone: "Update installed", upRestart: "Restart", upBanner: "Installed version", upRecBusy: "Finish the recording first",
+    upDeps: "Some libraries didn't update — run update.bat",
+    sEditor: "Editor", edT: "Editor model", edD: "A small neural network on your GPU fixes English names (After Effects, Figma, Alt+Tab), mistakes and punctuation. It doesn't rephrase.",
+    edInstall: "Install · 2.7 GB", edInstalling: "Downloading", edNotInstalled: "Not installed", edReady: "Installed", edGpu: "on GPU", edCpu: "on CPU",
+    edOn: "Enable editor", edModes: "Where to fix", edDict: "Dictation (+1–2 s before pasting)", edRec: "Recording", edFiles: "Files", edYt: "YouTube (also adds punctuation)",
+    edTerms: "Your terms", edTermsD: "Comma-separated — the editor will spell them exactly like this. Words from the dictionary are added automatically.",
+    edTest: "Test", edTestPh: "Paste a phrase here, e.g.: я открыл автор эффектс и нажал альт таб", edBefore: "Before", edAfter: "After",
+    edRemove: "Remove editor", edErr: "Install error", edEditing: "Editing",
+    h: "h", m: "min", s: "s",
+  },
+};
+let LANG = "ru";
+const t = (k) => (I18N[LANG][k] ?? I18N.ru[k] ?? k);
+
+/* ---------- helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const IC = {
+  copy: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V3.5a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2"/></svg>',
+  down: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5v8M4.5 7 8 10.5 11.5 7M3 13.5h10"/></svg>',
+  trash: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5"/></svg>',
+  clock: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="8" cy="8" r="5.5"/><path d="M8 5v3l2 1.5"/></svg>',
+  cal: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2.5" y="3.5" width="11" height="10" rx="1.5"/><path d="M2.5 6.5h11M5.5 2v3M10.5 2v3"/></svg>',
+  file: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path d="M4 2.5h5l3 3v8H4z"/><path d="M9 2.5v3h3"/></svg>',
+  cpu: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="4" y="4" width="8" height="8" rx="1"/><path d="M6.5 2v2M9.5 2v2M6.5 12v2M9.5 12v2M2 6.5h2M2 9.5h2M12 6.5h2M12 9.5h2"/></svg>',
+  hash: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M6 2.5 5 13.5M11 2.5l-1 11M3 6h10.5M2.5 10H13"/></svg>',
+  aa: '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><text x="1" y="12.5" font-size="11" font-family="Segoe UI" font-weight="600">Aa</text></svg>',
+  lines: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M3 4.5h10M3 8h10M3 11.5h6"/></svg>',
+  plus: '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M7 2.5v9M2.5 7h9"/></svg>',
+  x: '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M3 3l6 6M9 3l-6 6"/></svg>',
+  check: '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#4dab9a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5l2.5 2.5L11 4.5"/></svg>',
+};
+function toast(msg) {
+  const el = $("#toast"); el.innerHTML = IC.check + "<span>" + esc(msg) + "</span>"; el.classList.add("on");
+  clearTimeout(toast._t); toast._t = setTimeout(() => el.classList.remove("on"), 1500);
+}
+function dur(sec) {
+  sec = Math.round(sec || 0);
+  const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+  return h ? `${h} ${t("h")} ${m} ${t("m")}` : m ? `${m} ${t("m")} ${s} ${t("s")}` : `${s} ${t("s")}`;
+}
+function ts(sec) {
+  sec = Math.floor(sec); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+  const p = (n) => String(n).padStart(2, "0");
+  return h ? `${h}:${p(m)}:${p(s)}` : `${p(m)}:${p(s)}`;
+}
+function fmtDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleString(LANG === "ru" ? "ru-RU" : "en-US", {day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit"});
+}
+
+/* ---------- state ---------- */
+let api = null, settings = {}, page = "record", trs = [], curTr = null, showTs = false;
+const jobs = new Map();
+let engineState = {state: "loading", detail: ""};
+
+window.vt = {
+  onState(s) { engineState = s; paintStatus(); },
+  onJob(j) {
+    const prev = jobs.get(j.id); jobs.set(j.id, j);
+    if (page === "files") renderJobs();
+    if (j.status === "done" && prev && prev.status !== "done" && page === "files" && ![...jobs.values()].some((x) => x.status === "wait" || x.status === "run")) {
+      setTimeout(() => go("tr:" + j.tid), 500);
+    }
+  },
+  async onTranscripts() { await loadTrs(); },
+  onHistory(item) { if (page === "history") renderPage(); },
+  onEditor() { if (page === "settings") renderEditor(); },
+  onUpdate(r) {
+    $("#upText").textContent = `${t("upBanner")} ${r.latest}` + (r.deps === false ? ` · ${t("upDeps")}` : "");
+    $("#upRestart").textContent = t("upRestart");
+    $("#upcard").classList.add("on");
+  },
+  onYtJob(j) {
+    const prev = ytJobs.get(j.id); ytJobs.set(j.id, j);
+    if (page === "youtube") renderYtJobs();
+    if (j.status === "done" && prev && prev.status !== "done" && page === "youtube" && ![...ytJobs.values()].some((x) => x.status === "wait" || x.status === "run")) setTimeout(() => go("tr:" + j.tid), 400);
+  },
+  async onRecDone(tid) {
+    rec.finishing = false;
+    await loadTrs();
+    if (tid && page === "record") go("tr:" + tid);
+  },
+};
+
+function paintStatus() {
+  $("#ws").dataset.s = engineState.state;
+  $("#dcard").dataset.s = engineState.state;
+  $("#statusText").textContent = t("st_" + engineState.state) + (engineState.state === "error" && engineState.detail ? ": " + engineState.detail : "");
+  $("#ws").title = engineState.detail || "";
+}
+
+/* ---------- theme & language ---------- */
+function applyTheme() {
+  const th = settings.theme || "system";
+  let dark = th === "dark";
+  if (th === "system") dark = window.matchMedia("(prefers-color-scheme: dark)").matches || !!settings.system_dark;
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+}
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
+function applyLang() {
+  LANG = settings.ui_lang === "en" ? "en" : "ru";
+  document.documentElement.lang = LANG;
+  document.querySelectorAll("[data-i]").forEach((el) => el.textContent = t(el.dataset.i));
+  const key = (I18N[LANG].keys[settings.hotkey] || settings.hotkey);
+  $("#dHold").textContent = settings.mode === "toggle" ? t("press") : t("hold");
+  $("#dKey").textContent = key;
+  paintStatus(); renderTrList(); renderPage();
+}
+
+/* ---------- navigation ---------- */
+document.querySelectorAll(".nav .item").forEach((el) => el.onclick = () => go(el.dataset.page));
+function go(p) { page = p; $("#scroller").scrollTop = 0; renderPage(); }
+function markNav() {
+  document.querySelectorAll(".nav .item").forEach((el) => el.classList.toggle("on", el.dataset.page === page));
+  document.querySelectorAll("#trlist .item").forEach((el) => el.classList.toggle("on", "tr:" + el.dataset.id === page));
+}
+function crumbs(parts) {
+  $("#crumbs").innerHTML = parts.map((p, i) =>
+    `${i ? '<span class="sep">/</span>' : ""}<div class="crumb ${p.go ? "link" : ""}" ${p.go ? `data-go="${p.go}"` : ""}>${p.em ? `<span>${p.em}</span>` : ""}<span>${esc(p.text)}</span></div>`).join("");
+  $("#crumbs").querySelectorAll("[data-go]").forEach((el) => el.onclick = () => go(el.dataset.go));
+}
+function actions(html) { $("#actions").innerHTML = html || ""; }
+function renderPage() {
+  markNav();
+  if (page === "files") return pageFiles();
+  if (page === "record") return pageRecord();
+  if (page === "youtube") return pageYoutube();
+  if (page === "history") return pageHistory();
+  if (page === "dict") return pageDict();
+  if (page === "settings") return pageSettings();
+  if (page.startsWith("tr:")) return pageTranscript(page.slice(3));
+}
+
+/* ---------- sidebar transcripts ---------- */
+async function loadTrs() { trs = await api.list_transcripts(); renderTrList(); }
+function renderTrList() {
+  const box = $("#trlist");
+  if (!trs.length) { box.innerHTML = `<div class="trempty">${t("noTranscripts")}</div>`; return; }
+  box.innerHTML = trs.map((x) => `<div class="item" data-id="${x.id}" title="${esc(x.title)}"><span class="em">${x.recording ? "🔴" : x.kind === "youtube" ? "📺" : x.kind === "mic" ? "🎙️" : "📄"}</span><span class="lbl">${esc(x.title || t("untitled"))}</span><span class="del" title="${t("del")}">${IC.x}</span></div>`).join("");
+  box.querySelectorAll(".item").forEach((el) => {
+    el.onclick = () => go(trs.find((x) => x.id === el.dataset.id)?.recording ? "record" : "tr:" + el.dataset.id);
+    el.querySelector(".del").onclick = (e) => { e.stopPropagation(); delTr(el.dataset.id); };
+  });
+  markNav();
+}
+async function delTr(id) {
+  await api.delete_transcript(id); toast(t("deleted"));
+  if (page === "tr:" + id) page = "files";
+  await loadTrs(); renderPage();
+}
+
+/* ---------- page: files ---------- */
+function pageFiles() {
+  crumbs([{em: "📥", text: t("navFiles")}]); actions("");
+  $("#view").innerHTML = `
+    <div class="page">
+      <div class="picon">📥</div>
+      <h1>${t("navFiles")}</h1>
+      <div class="desc">${t("filesDesc")}</div>
+      <div class="drop" id="drop">
+        <div class="big">🎧</div>
+        <div class="t1">${t("dropT1")}</div>
+        <div class="t2">${t("dropT2")}</div>
+        <button class="btn primary" id="pick">${t("pick")}</button>
+      </div>
+      <div id="jobsBox"></div>
+    </div>`;
+  $("#pick").onclick = () => api.pick_files();
+  renderJobs();
+}
+function renderJobs() {
+  const box = $("#jobsBox"); if (!box) return;
+  const list = [...jobs.values()].sort((a, b) => b.id - a.id);
+  $("#drop").classList.toggle("compact", list.length > 0);
+  if (!list.length) { box.innerHTML = ""; return; }
+  box.innerHTML = `<h3>${t("queue")}</h3><div class="rows">` + list.map((j) => {
+    let right = "";
+    if (j.status === "wait") right = `<span class="tag gray">${t("qWait")}</span>`;
+    else if (j.status === "edit") right = `<div class="prog"><i style="width:${j.progress || 0}%"></i></div><span class="tag blue">${t("edEditing")} ${j.progress || 0}%</span>`;
+    else if (j.status === "run") right = j.progress == null
+      ? `<span class="tag blue">${t("qRead")}</span>`
+      : `<div class="prog"><i style="width:${j.progress}%"></i></div><span class="tag blue">${t("qRun")} ${j.progress}%</span>`;
+    else if (j.status === "done") right = `<span class="tag green">${t("qDone")}</span>`;
+    else right = `<span class="tag red">${t("qErr")}</span>`;
+    return `<div class="row ${j.status === "done" ? "click" : ""}" data-tid="${j.tid || ""}">
+      <span class="em">${j.status === "err" ? "⚠️" : "📄"}</span>
+      <div style="flex:1;min-width:0"><div class="name">${esc(j.name)}</div>${j.status === "err" ? `<div class="err">${esc(j.error)}</div>` : ""}</div>
+      ${right}</div>`;
+  }).join("") + "</div>";
+  box.querySelectorAll(".row.click").forEach((el) => el.onclick = () => go("tr:" + el.dataset.tid));
+}
+
+/* drag & drop: the page gets the drop, Python receives real paths from WebView2 */
+let dragDepth = 0;
+const isFileDrag = (e) => e.dataTransfer && [...e.dataTransfer.types].includes("Files");
+document.addEventListener("dragenter", (e) => {
+  if (!isFileDrag(e)) return; e.preventDefault(); dragDepth++;
+  if (page !== "files") go("files");
+  $("#drop")?.classList.add("over");
+});
+document.addEventListener("dragover", (e) => { if (isFileDrag(e)) { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; } });
+document.addEventListener("dragleave", () => { if (--dragDepth <= 0) { dragDepth = 0; $("#drop")?.classList.remove("over"); } });
+document.addEventListener("drop", async (e) => {
+  if (!isFileDrag(e)) return;
+  e.preventDefault(); dragDepth = 0; $("#drop")?.classList.remove("over");
+  const files = e.dataTransfer.files;
+  if (!files || !files.length) return;
+  try {
+    window.chrome.webview.postMessageWithAdditionalObjects("FilesDropped", files);
+  } catch (err) { toast(t("dropFail")); return; }
+  const n = await api.take_dropped();
+  if (!n) toast(t("dropFail"));
+});
+
+/* ---------- page: transcript ---------- */
+async function pageTranscript(id) {
+  let tr;
+  try { tr = await api.get_transcript(id); } catch (e) { page = "files"; return pageFiles(); }
+  if (page !== "tr:" + id) return;
+  curTr = tr;
+  crumbs([{em: "📄", text: t("transcripts")}, {text: tr.title || t("untitled")}]);
+  actions(`
+    <button class="tbtn ${showTs ? "on" : ""}" id="aTs" title="${t("timestamps")}">${IC.clock}<span>${t("timestamps")}</span></button>
+    <button class="tbtn icon" id="aExp" title="${t("exportTxt")}">${IC.down}</button>
+    <button class="tbtn icon" id="aDel" title="${t("del")}">${IC.trash}</button>
+    <button class="tbtn" id="aCopy" title="${t("copy")}">${IC.copy}<span>${t("copy")}</span></button>`);
+  $("#aTs").onclick = () => { showTs = !showTs; pageTranscript(id); };
+  $("#aExp").onclick = async () => { if (await api.export_transcript(id, showTs)) toast(t("saved")); };
+  $("#aDel").onclick = () => delTr(id);
+  $("#aCopy").onclick = async () => { await api.copy_transcript(id, showTs); toast(t("copied")); };
+  const words = tr.segments.reduce((n, s) => n + s.text.split(/\s+/).filter(Boolean).length, 0);
+  const body = tr.segments.length
+    ? tr.segments.map((s) => `<p>${showTs ? `<span class="ts">${ts(s.t)}</span>` : ""}${esc(s.text)}</p>`).join("")
+    : `<p class="none">${t("noSpeech")}</p>`;
+  $("#view").innerHTML = `
+    <div class="page">
+      <div class="picon">${tr.kind === "youtube" ? "📺" : tr.kind === "mic" ? "🎙️" : "📄"}</div>
+      <h1 contenteditable="true" spellcheck="false" id="trTitle" data-ph="${t("untitled")}">${esc(tr.title)}</h1>
+      <div class="props">
+        <div class="prop"><div class="pk">${IC.clock}${t("pDuration")}</div><div class="pv"><span>${dur(tr.duration)}</span></div></div>
+        <div class="prop"><div class="pk">${IC.cal}${t("pCreated")}</div><div class="pv"><span>${fmtDate(tr.created)}</span></div></div>
+        <div class="prop"><div class="pk">${IC.hash}${t("pWords")}</div><div class="pv"><span>${words}</span></div></div>
+        ${tr.kind === "youtube" ? `
+        <div class="prop"><div class="pk">${IC.file}${t("pChannel")}</div><div class="pv"><span>${esc(tr.channel || "—")}</span></div></div>
+        <div class="prop"><div class="pk">${IC.hash}${t("pSubs")}</div><div class="pv"><span>${esc({manual: t("subManual"), auto: t("subAuto"), translated: t("subTr")}[tr.sub_kind] || "")} · ${esc(tr.sub_lang || "")}</span></div></div>
+        <div class="prop"><div class="pk">${IC.cpu}${t("pLink")}</div><div class="pv link" id="ytlink" title="${esc(tr.source)}"><span>${esc(tr.source)}</span></div></div>` : `
+        <div class="prop"><div class="pk">${IC.file}${t("pSource")}</div>${tr.source
+          ? `<div class="pv link" id="src" title="${esc(tr.source)}"><span>${esc(tr.source)}</span></div>`
+          : `<div class="pv"><span>🎙️ ${t("srcMic")}</span></div>`}</div>
+        <div class="prop"><div class="pk">${IC.cpu}${t("pModel")}</div><div class="pv"><span>GigaAM ${esc(tr.model || "")}</span></div></div>`}
+      </div>
+      <div class="hr"></div>
+      <div class="doc">${body}</div>
+    </div>`;
+  if ($("#src")) $("#src").onclick = () => api.reveal(tr.source);
+  if ($("#ytlink")) $("#ytlink").onclick = () => api.open_url(tr.source);
+  const h = $("#trTitle");
+  h.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); h.blur(); } };
+  h.onblur = async () => {
+    const v = h.textContent.trim();
+    if (v && v !== tr.title) { await api.rename_transcript(id, v); tr.title = v; await loadTrs(); crumbs([{em: "📄", text: t("transcripts")}, {text: v}]); }
+  };
+}
+
+
+/* ---------- recorder ---------- */
+const rec = {state: "idle", elapsed: 0, peaks: [], np: 0, segs: [], ns: 0, tid: null, timer: null, finishing: false};
+const ICR = {
+  rec: '<svg width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="7" fill="currentColor"/></svg>',
+  stop: '<svg width="20" height="20" viewBox="0 0 20 20"><rect x="4" y="4" width="12" height="12" rx="3" fill="currentColor"/></svg>',
+  pause: '<svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor"><rect x="4" y="3" width="3.5" height="12" rx="1.5"/><rect x="10.5" y="3" width="3.5" height="12" rx="1.5"/></svg>',
+  play: '<svg width="18" height="18" viewBox="0 0 18 18"><path d="M5.5 3.6v10.8a1 1 0 0 0 1.5.86l8.8-5.4a1 1 0 0 0 0-1.72L7 2.74a1 1 0 0 0-1.5.86z" fill="currentColor"/></svg>',
+  trash: '<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5"/></svg>',
+};
+function clock(sec) {
+  sec = Math.floor(sec || 0);
+  const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60, p = (n) => String(n).padStart(2, "0");
+  return `${p(h)}:${p(m)}:${p(s)}`;
+}
+async function recPoll() {
+  if (!api) return;
+  let st;
+  try { st = await api.rec_status(rec.np, rec.ns); } catch (e) { return; }
+  const was = rec.state;
+  rec.state = st.state; rec.elapsed = st.elapsed; rec.tid = st.tid;
+  if (st.peaks.length) { rec.peaks.push(...st.peaks); rec.np = st.npeaks; if (rec.peaks.length > 4000) rec.peaks.splice(0, rec.peaks.length - 4000); }
+  if (st.nsegs !== rec.ns || st.segs.length) {
+    const changed = st.nsegs !== rec.ns || JSON.stringify(rec.segs[st.segfrom]) !== JSON.stringify(st.segs[0]);
+    rec.segs.splice(st.segfrom, rec.segs.length - st.segfrom, ...st.segs); rec.ns = st.nsegs;
+    if (changed && page === "record") renderLive(true);
+  }
+  paintRecNav();
+  if (page === "record") { paintRecHead(); if (was !== st.state) paintControls(); }
+  if (st.state === "idle") {
+    stopPolling();
+    if (was !== "idle") {  // recording finished: clear the timer and the waveform for the next one
+      Object.assign(rec, {elapsed: 0, peaks: [], np: 0, segs: [], ns: 0});
+      paintRecNav();
+      if (page === "record") { paintRecHead(); paintControls(); renderLive(); }
+    }
+  }
+}
+function startPolling() { if (!rec.timer) rec.timer = setInterval(recPoll, 100); }
+function stopPolling() { clearInterval(rec.timer); rec.timer = null; }
+function paintRecNav() {
+  const on = rec.state === "rec" || rec.state === "paused" || rec.state === "finishing";
+  $("#navLive").style.display = on ? "" : "none";
+  $("#navLive").classList.toggle("paused", rec.state !== "rec");
+  $("#navTime").textContent = clock(rec.elapsed);
+}
+function stateLabel() {
+  return {idle: t("recIdle"), rec: t("recRec"), paused: t("recPaused"), finishing: t("recFinishing")}[rec.state] || "";
+}
+function paintRecHead() {
+  const tm = $("#recTimer"); if (!tm) return;
+  tm.textContent = clock(rec.elapsed);
+  const s = $("#recState"); s.className = "rstate " + rec.state; s.innerHTML = `<i></i>${stateLabel()}`;
+}
+function paintControls() {
+  const c = $("#recControls"); if (!c) return;
+  const L = $("#recLabels");
+  if (rec.state === "idle") {
+    c.innerHTML = `<button class="rbtn big" id="bStart" title="${t("recStart")}">${ICR.rec}</button>`;
+    L.innerHTML = `<span style="width:68px">${t("recStart")}</span>`;
+    $("#bStart").onclick = async () => {
+      const r = await api.rec_start();
+      if (!r.ok) { toast(r.error === "model" ? t("recNoModel") : t("recMicErr") + (r.error ? ": " + r.error : "")); return; }
+      Object.assign(rec, {state: "rec", elapsed: 0, peaks: [], np: 0, segs: [], ns: 0, tid: r.tid});
+      renderLive(); paintRecHead(); paintControls(); startPolling(); loadTrs();
+    };
+  } else if (rec.state === "finishing") {
+    c.innerHTML = `<button class="rbtn big stop" disabled>${ICR.stop}</button>`;
+    L.innerHTML = `<span>${t("recFinishing")}</span>`;
+  } else {
+    const paused = rec.state === "paused";
+    c.innerHTML = `
+      <button class="rbtn small" id="bCancel" title="${t("recCancel")}">${ICR.trash}</button>
+      <button class="rbtn mid" id="bPause" title="${paused ? t("recResume") : t("recPause")}">${paused ? ICR.play : ICR.pause}</button>
+      <button class="rbtn big stop" id="bStop" title="${t("recStop")}">${ICR.stop}</button>
+      <span style="width:40px"></span>`;
+    L.innerHTML = `<span style="width:40px"></span><span style="width:52px">${paused ? t("recResume") : t("recPause")}</span><span style="width:68px">${t("recStop")}</span><span style="width:40px"></span>`;
+    $("#bPause").onclick = async () => { paused ? await api.rec_resume() : await api.rec_pause(); rec.state = paused ? "rec" : "paused"; paintRecHead(); paintControls(); paintRecNav(); };
+    $("#bStop").onclick = async () => { await api.rec_stop(); rec.state = "finishing"; rec.finishing = true; paintRecHead(); paintControls(); };
+    $("#bCancel").onclick = async () => {
+      if (!confirmInline($("#bCancel"))) return;
+      await api.rec_cancel(); Object.assign(rec, {state: "idle", elapsed: 0, peaks: [], np: 0, segs: [], ns: 0, tid: null});
+      paintRecHead(); paintControls(); paintRecNav(); renderLive(); loadTrs();
+    };
+  }
+}
+/* two-step delete: first click arms the button, second click within 3 s confirms */
+function confirmInline(btn) {
+  if (btn.dataset.armed) return true;
+  btn.dataset.armed = "1"; btn.style.color = "var(--red)"; btn.style.background = "rgba(224,62,62,.1)";
+  toast(t("recCancelQ"));
+  setTimeout(() => { delete btn.dataset.armed; btn.style.color = ""; btn.style.background = ""; }, 3000);
+  return false;
+}
+function renderLive(append) {
+  const box = $("#recLive"); if (!box) return;
+  if (!rec.segs.length) { box.innerHTML = `<p class="none">${t("recEmpty")}</p>`; return; }
+  const sc = $("#scroller");
+  const atBottom = sc.scrollHeight - sc.scrollTop - sc.clientHeight < 80;
+  box.innerHTML = rec.segs.map((s) => `<p><span class="ts">${ts(s.t)}</span>${esc(s.text)}</p>`).join("");
+  if (append && atBottom) sc.scrollTop = sc.scrollHeight;
+}
+function drawWave() {
+  const cv = $("#recWave");
+  if (!cv) return;
+  const dpr = (window.devicePixelRatio || 1) * ZOOM;
+  const w = cv.clientWidth, h = cv.clientHeight;
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  const g = cv.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, w, h);
+  const css = getComputedStyle(document.documentElement);
+  const ink = rec.state === "rec" ? css.getPropertyValue("--text").trim() : css.getPropertyValue("--text-3").trim();
+  const faint = css.getPropertyValue("--divider").trim();
+  const mid = h / 2 - 8;
+  // center line
+  g.fillStyle = faint; g.fillRect(0, mid, w, 1);
+  // second ticks along the bottom (20 bars = 1 s)
+  const step = 4, bar = 2.5, perSec = 20;
+  const n = Math.floor(w / step);
+  const peaks = rec.peaks.slice(-n);
+  const off = n - peaks.length;
+  g.fillStyle = faint;
+  const firstIdx = rec.np - peaks.length;
+  for (let i = 0; i < peaks.length; i++) {
+    const gi = firstIdx + i;
+    if (gi % perSec === 0) {
+      const x = (off + i) * step;
+      const major = gi % (perSec * 5) === 0;
+      g.fillRect(x, h - (major ? 14 : 9), 1, major ? 14 : 9);
+      if (major && x > 4) { g.font = "10px Segoe UI, sans-serif"; g.fillStyle = css.getPropertyValue("--text-3").trim(); g.fillText(clock(gi / perSec).replace(/^00:/, ""), x + 4, h - 4); g.fillStyle = faint; }
+    }
+  }
+  g.fillStyle = ink;
+  for (let i = 0; i < peaks.length; i++) {
+    const v = Math.min(1, Math.pow(peaks[i], 0.6) * 1.4);
+    const bh = Math.max(2, v * (mid - 10) * 2);
+    const x = (off + i) * step;
+    const y = mid - bh / 2;
+    g.beginPath(); g.roundRect(x, y, bar, bh, 1.25); g.fill();
+  }
+  const ph = $("#wavePh"); if (ph) ph.style.display = rec.peaks.length ? "none" : "";
+}
+function waveLoop() { if (page === "record") drawWave(); requestAnimationFrame(waveLoop); }
+requestAnimationFrame(waveLoop);
+
+async function pageRecord() {
+  crumbs([{em: "🎙️", text: t("navRecord")}]); actions("");
+  $("#view").innerHTML = `
+    <div class="page">
+      <div class="picon">🎙️</div>
+      <h1>${t("navRecord")}</h1>
+      <div class="desc">${t("recDesc")}</div>
+      <div class="recbox">
+        <div class="rechead"><div class="timer" id="recTimer">00:00:00</div><div class="rstate" id="recState"></div></div>
+        <div class="wave"><canvas id="recWave"></canvas><div class="ph" id="wavePh">${t("recWaveIdle")}</div></div>
+        <div class="controls" id="recControls"></div>
+        <div class="rlabels" id="recLabels"></div>
+        <div class="rnote">${t("recNote")}</div>
+      </div>
+      <h3 class="livehead">${t("recLive")} <small>· ${t("recLag")}</small></h3>
+      <div class="doc" id="recLive"></div>
+    </div>`;
+  paintRecHead(); paintControls(); renderLive();
+  if (rec.state !== "idle") startPolling();
+}
+
+
+/* ---------- page: youtube ---------- */
+const ytJobs = new Map();
+let ytPref = "orig";
+function pageYoutube() {
+  crumbs([{em: "📺", text: t("navYt")}]); actions("");
+  const L = [{v: "orig", label: t("ytOrig")}, {v: "ru", label: t("ytRu")}, {v: "en", label: t("ytEn")}];
+  $("#view").innerHTML = `
+    <div class="page">
+      <div class="picon">📺</div>
+      <h1>${t("navYt")}</h1>
+      <div class="desc">${t("ytDesc")}</div>
+      <div class="ytbox">
+        <div class="ytrow">
+          <input class="ytin" id="ytUrl" placeholder="${t("ytPh")}" spellcheck="false" autocomplete="off">
+          <button class="btn primary lg" id="ytGo">${t("ytGo")}</button>
+        </div>
+        <div class="ytopts"><span>${t("ytLang")}</span>${ddHtml("ytLangDd", L, ytPref)}<span class="sp"></span><span>${t("ytNote")}</span></div>
+      </div>
+      <div id="ytJobsBox"></div>
+    </div>`;
+  ddBind("ytLangDd", L, (v) => { ytPref = v; });
+  const submit = async () => {
+    const inp = $("#ytUrl"); const urls = inp.value.split(/\s+/).filter(Boolean);
+    if (!urls.length) { inp.focus(); return; }
+    let bad = 0;
+    for (const u of urls) { const r = await api.add_youtube(u, ytPref); if (!r.ok) bad++; }
+    if (bad) toast(t("ytBad")); else inp.value = "";
+  };
+  $("#ytGo").onclick = submit;
+  $("#ytUrl").onkeydown = (e) => { if (e.key === "Enter") submit(); };
+  $("#ytUrl").focus();
+  renderYtJobs();
+}
+function renderYtJobs() {
+  const box = $("#ytJobsBox"); if (!box) return;
+  const list = [...ytJobs.values()].sort((a, b) => b.id - a.id);
+  if (!list.length) { box.innerHTML = ""; return; }
+  box.innerHTML = `<h3>${t("queue")}</h3><div class="rows">` + list.map((j) => {
+    const right = j.status === "wait" ? `<span class="tag gray">${t("ytWait")}</span>`
+      : j.status === "run" ? `<span class="tag blue">${t("ytRun")}…</span>`
+      : j.status === "edit" ? `<span class="tag blue">${t("edEditing")} ${j.progress || 0}%</span>`
+      : j.status === "done" ? `<span class="tag green">${t("ytDone")}</span>`
+      : `<span class="tag red">${t("qErr")}</span>`;
+    const sub = j.status === "err" ? `<div class="err">${esc(t("err_" + (j.code || "other")))}${j.code === "network" || j.code === "other" ? ": " + esc(j.error || "") : ""}</div>`
+      : (j.name !== j.url ? `<div class="sub">${esc(j.url)}</div>` : "");
+    return `<div class="row ${j.status === "done" ? "click" : ""}" data-tid="${j.tid || ""}">
+      <span class="em">${j.status === "err" ? "⚠️" : "📺"}</span>
+      <div style="flex:1;min-width:0"><div class="name">${esc(j.name)}</div>${sub}</div>${right}</div>`;
+  }).join("") + "</div>";
+  box.querySelectorAll(".row.click").forEach((el) => el.onclick = () => go("tr:" + el.dataset.tid));
+}
+
+/* ---------- page: history ---------- */
+async function pageHistory() {
+  crumbs([{em: "🕘", text: t("navHistory")}]);
+  actions(`<button class="tbtn" id="aClear">${IC.trash}<span>${t("clear")}</span></button>`);
+  $("#aClear").onclick = async () => { await api.clear_history(); pageHistory(); };
+  const items = await api.get_history();
+  if (page !== "history") return;
+  $("#view").innerHTML = `
+    <div class="page">
+      <div class="picon">🕘</div>
+      <h1>${t("navHistory")}</h1>
+      <div class="desc">${t("histDesc")}</div>
+      <div id="hist" class="hlist">${items.length ? "" : `<div class="empty">${t("histEmpty")}</div>`}</div>
+    </div>`;
+  const box = $("#hist");
+  items.forEach((it) => {
+    const r = document.createElement("div"); r.className = "hrow";
+    r.innerHTML = `<time>${esc(it.time)}</time><div class="t">${esc(it.text)}</div><span class="cp">${IC.copy}</span>`;
+    r.onclick = async () => { await api.copy_text(it.text); toast(t("copied")); };
+    box.append(r);
+  });
+}
+
+/* ---------- page: dictionary ---------- */
+async function pageDict() {
+  crumbs([{em: "📖", text: t("navDict")}]); actions("");
+  const rows = await api.get_dictionary();
+  if (page !== "dict") return;
+  $("#view").innerHTML = `
+    <div class="page">
+      <div class="picon">📖</div>
+      <h1>${t("navDict")}</h1>
+      <div class="desc">${t("dictDesc")}</div>
+      <div class="table" id="tbl">
+        <div class="tr th"><div>${IC.aa}${t("heard")}</div><div>${IC.lines}${t("written")}</div><div></div></div>
+      </div>
+      <div class="addrow" id="addRow">${IC.plus}${t("newRow")}</div>
+    </div>`;
+  rows.forEach(([a, b]) => $("#tbl").append(dictRow(a, b)));
+  $("#addRow").onclick = () => { const r = dictRow("", ""); $("#tbl").append(r); r.querySelector("input").focus(); };
+}
+function dictRow(a, b) {
+  const r = document.createElement("div"); r.className = "tr";
+  r.innerHTML = `<div><input value="${esc(a)}" placeholder="гитхаб"></div><div><input value="${esc(b)}" placeholder="GitHub"></div><div class="x" title="${t("del")}">${IC.x}</div>`;
+  r.querySelectorAll("input").forEach((i) => i.oninput = saveDictSoon);
+  r.querySelector(".x").onclick = () => { r.remove(); saveDictSoon(); };
+  return r;
+}
+function saveDictSoon() {
+  clearTimeout(saveDictSoon._t);
+  saveDictSoon._t = setTimeout(async () => {
+    const rows = [...document.querySelectorAll("#tbl .tr:not(.th)")].map((r) => {
+      const [a, b] = r.querySelectorAll("input"); return [a.value.trim(), b.value.trim()];
+    }).filter(([a]) => a);
+    await api.save_dictionary(rows);
+  }, 400);
+}
+
+/* ---------- dropdown (soft popover instead of the native select) ---------- */
+const CHEV = '<svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const TICK = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5l2.5 2.5L11 4.5"/></svg>';
+let openMenu = null;
+function ddHtml(id, options, cur) {
+  const o = options.find((x) => String(x.v) === String(cur)) || options[0];
+  return `<button class="dd" id="${id}" data-v="${esc(o.v)}">${""}<span>${esc(o.label)}</span>${CHEV}</button>`;
+}
+function ddBind(id, options, onChange) {
+  const btn = $("#" + id);
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    if (openMenu && openMenu.btn === btn) return closeMenu();
+    closeMenu();
+    const m = document.createElement("div"); m.className = "menu";
+    m.innerHTML = options.map((o, i) => `<div class="mi ${String(o.v) === btn.dataset.v ? "sel" : ""}" data-i="${i}"><span>${esc(o.label)}</span>${TICK}</div>`).join("");
+    document.body.append(m);
+    // coordinates in page (unzoomed) pixels, so the menu sits right at any zoom level
+    const z = ZOOM, br = btn.getBoundingClientRect();
+    const r = {top: br.top / z, bottom: br.bottom / z, right: br.right / z, width: br.width / z};
+    const vw = window.innerWidth / z, vh = window.innerHeight / z;
+    const w = Math.max(r.width, 220);
+    let left = Math.min(r.right - w, vw - w - 12);
+    m.style.width = w + "px"; m.style.left = Math.max(12, left) + "px";
+    const below = vh - r.bottom - 12;
+    if (below < Math.min(m.scrollHeight, 320) && r.top > below) { m.style.bottom = (vh - r.top + 6) + "px"; m.style.transformOrigin = "bottom"; }
+    else m.style.top = (r.bottom + 6) + "px";
+    requestAnimationFrame(() => m.classList.add("on"));
+    btn.classList.add("open");
+    m.querySelectorAll(".mi").forEach((el) => el.onclick = (ev) => {
+      ev.stopPropagation();
+      const o = options[+el.dataset.i];
+      btn.dataset.v = o.v; btn.querySelector("span").textContent = o.label;
+      closeMenu(); onChange(o.v);
+    });
+    openMenu = {m, btn};
+  };
+}
+function closeMenu() {
+  if (!openMenu) return;
+  const {m, btn} = openMenu; openMenu = null;
+  btn.classList.remove("open"); m.classList.remove("on"); setTimeout(() => m.remove(), 130);
+}
+document.addEventListener("click", closeMenu);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMenu(); });
+// close the menu when the page scrolls, but not when the list inside the menu is scrolled
+document.addEventListener("scroll", (e) => { if (openMenu && openMenu.m.contains(e.target)) return; closeMenu(); }, true);
+
+/* ---------- page: settings ---------- */
+async function pageSettings() {
+  crumbs([{em: "⚙️", text: t("navSettings")}]); actions("");
+  const mics = await api.list_mics();
+  const ver = await api.get_version();
+  if (page !== "settings") return;
+  const K = I18N[LANG].keys;
+  const D = {
+    hotkey: Object.keys(K).map((k) => ({v: k, label: K[k]})),
+    mode: [{v: "hold", label: t("modeHold")}, {v: "toggle", label: t("modeToggle")}],
+    mic: [{v: "", label: t("micDefault")}, ...mics.map((m) => ({v: String(m.id), label: m.name}))],
+    model: [{v: "v3_e2e_rnnt", label: t("modelRnnt")}, {v: "v3_e2e_ctc", label: t("modelCtc")}],
+    lang: [{v: "ru", label: "Русский"}, {v: "en", label: "English"}],
+    style: [{v: "formal", label: t("stFormal")}, {v: "casual", label: t("stCasual")}, {v: "very_casual", label: t("stVery")}],
+    lp: [{v: "long", label: t("lpLong")}, {v: "chunk", label: t("lpChunk")}, {v: "none", label: t("lpNone")}],
+    pause: [{v: "0.8", label: t("pShort")}, {v: "1.2", label: t("pMid")}, {v: "2", label: t("pLong")}],
+    zoom: ZOOMS.map((z) => ({v: String(z), label: Math.round(z * 100) + "%"})),
+    theme: [{v: "system", label: t("themeSystem")}, {v: "light", label: t("themeLight")}, {v: "dark", label: t("themeDark")}],
+  };
+  const tog = (id, on) => `<label class="toggle"><input type="checkbox" id="${id}" ${on ? "checked" : ""}><i></i></label>`;
+  const row = (label, desc, ctl) => `<div class="srow"><div class="sl"><b>${label}</b>${desc ? `<small>${desc}</small>` : ""}</div>${ctl}</div>`;
+  $("#view").innerHTML = `
+    <div class="page">
+      <div class="picon">⚙️</div>
+      <h1>${t("navSettings")}</h1>
+      <h3>${t("sDictation")}</h3>
+      <div class="card">
+        ${row(t("hotkey"), "", ddHtml("s-hotkey", D.hotkey, settings.hotkey))}
+        ${row(t("mode"), t("modeD"), ddHtml("s-mode", D.mode, settings.mode))}
+        ${row(t("mic"), "", ddHtml("s-mic", D.mic, settings.mic_device ?? ""))}
+        ${row(t("sounds"), "", tog("s-sounds", settings.sounds))}
+        ${row(t("overlay"), "", tog("s-overlay", settings.overlay))}
+        ${row(t("space"), "", tog("s-space", settings.add_trailing_space))}
+      </div>
+      <h3>${t("sStyle")}</h3>
+      <div class="card">
+        ${row(t("style"), t("styleD"), ddHtml("s-style", D.style, settings.style || "formal"))}
+        <div class="example" id="styleEx"></div>
+        ${row(t("paras"), t("parasD"), tog("s-paras", settings.paragraphs !== false))}
+        <div id="pauseRow">${row(t("pause"), "", ddHtml("s-pause", D.pause, String(settings.paragraph_pause ?? 1.2)))}</div>
+        ${row(t("cleanT"), t("cleanD"), tog("s-clean", settings.clean !== false))}
+        ${row(t("fillT"), t("fillD"), tog("s-fill", !!settings.clean_fillers))}
+        ${row(t("lpT"), t("lpD"), ddHtml("s-lp", D.lp, settings.long_paragraphs || "long"))}
+      </div>
+      <div class="cardnote">${t("styleNote")}</div>
+      <h3>${t("sEditor")}</h3>
+      <div class="card" id="edCard"></div>
+      <h3>${t("sRecognition")}</h3>
+      <div class="card">${row(t("model"), t("modelD"), ddHtml("s-model", D.model, settings.model))}</div>
+      <h3>${t("sAppearance")}</h3>
+      <div class="card">
+        ${row(t("lang"), "", ddHtml("s-lang", D.lang, settings.ui_lang))}
+        ${row(t("theme"), "", ddHtml("s-theme", D.theme, settings.theme))}
+        ${row(t("zoomT"), t("zoomD"), ddHtml("s-zoom", D.zoom, String(ZOOMS.reduce((a, b) => Math.abs(b - ZOOM) < Math.abs(a - ZOOM) ? b : a))))}
+      </div>
+      <h3>${t("sUpdates")}</h3>
+      <div class="card">
+        ${row(t("upVer") + " " + esc(ver.version), `<a style="color:inherit" href="#" id="repoLink">github.com/${esc(ver.repo)}</a>`, `<button class="btn secondary" id="upCheckBtn">${t("upCheck")}</button>`)}
+        ${row(t("upAuto"), t("upAutoD"), tog("s-autoup", settings.auto_update !== false))}
+      </div>
+      <h3>${t("sSystem")}</h3>
+      <div class="card">
+        ${row(t("miniT"), t("miniD"), tog("s-mini", settings.mini_recorder !== false))}
+        ${row(t("autostart"), t("autostartD"), tog("s-autostart", settings.autostart))}
+      </div>
+    </div>`;
+  const set = async (key, v, after) => { settings[key] = v; await api.save_settings({[key]: v}); after && after(); };
+  ddBind("s-hotkey", D.hotkey, (v) => set("hotkey", v, applyLang));
+  ddBind("s-mode", D.mode, (v) => set("mode", v, applyLang));
+  ddBind("s-mic", D.mic, (v) => set("mic_device", v === "" ? null : Number(v)));
+  ddBind("s-model", D.model, (v) => set("model", v));
+  const paintEx = () => {
+    const st = settings.style || "formal";
+    const one = t(st === "casual" ? "exCasual" : st === "very_casual" ? "exVery" : "exFormal");
+    const two = st === "formal" ? "Встретимся завтра в одиннадцать." : st === "casual" ? "встретимся завтра в одиннадцать" : "встретимся завтра в одиннадцать";
+    $("#styleEx").innerHTML = `<small>${t("example")}</small>${esc(one)}${settings.paragraphs !== false ? "\n\n" : " "}${esc(two)}`;
+    $("#pauseRow").style.display = settings.paragraphs !== false ? "" : "none";
+  };
+  ddBind("s-style", D.style, (v) => set("style", v, paintEx));
+  ddBind("s-pause", D.pause, (v) => set("paragraph_pause", parseFloat(v)));
+  $("#s-paras").onchange = (e) => set("paragraphs", e.target.checked, paintEx);
+  paintEx();
+  ddBind("s-lang", D.lang, (v) => set("ui_lang", v, applyLang));
+  ddBind("s-theme", D.theme, (v) => set("theme", v, applyTheme));
+  ddBind("s-zoom", D.zoom, (v) => applyZoom(parseFloat(v), true, true));
+  renderEditor();
+  const bindTog = (id, key) => $("#" + id).onchange = (e) => set(key, e.target.checked);
+  ddBind("s-lp", D.lp, (v) => set("long_paragraphs", v));
+  bindTog("s-clean", "clean"); bindTog("s-fill", "clean_fillers");
+  bindTog("s-sounds", "sounds"); bindTog("s-overlay", "overlay"); bindTog("s-space", "add_trailing_space"); bindTog("s-autostart", "autostart"); bindTog("s-mini", "mini_recorder");
+  bindTog("s-autoup", "auto_update");
+  $("#repoLink").onclick = (e) => { e.preventDefault(); api.open_url("https://github.com/" + ver.repo); };
+  $("#upCheckBtn").onclick = async () => {
+    const b = $("#upCheckBtn"); b.disabled = true; b.textContent = t("upChecking");
+    const r = await api.check_updates();
+    b.disabled = false; b.textContent = t("upCheck");
+    if (r.updated) vt.onUpdate(r); else toast(r.error ? t("upErr") : t("upLatest"));
+  };
+}
+
+
+/* ---------- editor model card ---------- */
+let edPoll = null;
+async function renderEditor() {
+  const box = $("#edCard"); if (!box) return;
+  const st = await api.editor_status();
+  if (!$("#edCard")) return;
+  const tog = (id, on) => `<label class="toggle"><input type="checkbox" id="${id}" ${on ? "checked" : ""}><i></i></label>`;
+  if (st.running) {
+    box.innerHTML = `<div class="srow"><div class="sl"><b>${t("edT")}</b><small>${t("edInstalling")} ${esc(st.label)} · ${Math.round(st.progress * 100)}%</small>
+      <div class="edbar"><i style="width:${Math.round(st.progress * 100)}%"></i></div></div></div>`;
+    if (!edPoll) edPoll = setInterval(() => { if (page !== "settings") { clearInterval(edPoll); edPoll = null; return; } renderEditor(); }, 700);
+    return;
+  }
+  if (edPoll) { clearInterval(edPoll); edPoll = null; }
+  if (!st.installed) {
+    box.innerHTML = `<div class="srow"><div class="sl"><b>${t("edT")}</b><small>${t("edD")}</small>
+      ${st.error ? `<small style="color:var(--red)">${t("edErr")}: ${esc(st.error)}</small>` : ""}</div>
+      <button class="btn primary" id="edInstall">${t("edInstall")}</button></div>`;
+    $("#edInstall").onclick = async () => { await api.editor_install(); setTimeout(renderEditor, 300); };
+    return;
+  }
+  const on = !!settings.editor;
+  box.innerHTML = `
+    <div class="srow"><div class="sl"><b>${t("edOn")}</b><small>${t("edD")}</small>
+      <div class="edstate"><span class="ok"></span>${t("edReady")} · Qwen3-4B${st.gpu === false ? " · " + t("edCpu") : st.gpu ? " · " + t("edGpu") : ""}</div></div>${tog("ed-on", on)}</div>
+    <div class="srow"><div class="sl"><b>${t("edModes")}</b></div>
+      <div class="subtog">
+        ${[["dictation", "edDict"], ["recording", "edRec"], ["files", "edFiles"], ["youtube", "edYt"]].map(([k, l]) =>
+          `<label class="ck"><input type="checkbox" data-ed="${k}" ${settings["editor_" + k] !== false ? "checked" : ""}>${t(l)}</label>`).join("")}
+      </div></div>
+    <div class="edwrap"><b style="font-weight:500">${t("edTerms")}</b><small>${t("edTermsD")}</small>
+      <textarea class="edterms" id="edTerms" spellcheck="false">${esc((settings.editor_terms || []).join(", "))}</textarea></div>
+    <div class="edwrap"><b style="font-weight:500">${t("edTest")}</b><small></small>
+      <textarea class="edtest" id="edTestIn" placeholder="${esc(t("edTestPh"))}"></textarea>
+      <div style="margin-top:8px;display:flex;align-items:center;gap:12px"><button class="btn secondary" id="edTestGo">${t("edTest")}</button><span class="edstate" id="edTestInfo"></span></div>
+      <div class="edres" id="edTestOut"></div>
+      <div style="margin-top:12px"><button class="linkbtn" id="edRemove">${t("edRemove")}</button></div></div>`;
+  $("#ed-on").onchange = (e) => { settings.editor = e.target.checked; api.save_settings({editor: e.target.checked}); };
+  box.querySelectorAll("[data-ed]").forEach((c) => c.onchange = () => { const k = "editor_" + c.dataset.ed; settings[k] = c.checked; api.save_settings({[k]: c.checked}); });
+  $("#edTerms").onchange = () => {
+    const list = $("#edTerms").value.split(/[,\n]/).map((x) => x.trim()).filter(Boolean);
+    settings.editor_terms = list; api.save_settings({editor_terms: list}); toast(t("saved"));
+  };
+  $("#edTestGo").onclick = async () => {
+    const txt = $("#edTestIn").value.trim(); if (!txt) return;
+    $("#edTestGo").disabled = true; $("#edTestInfo").textContent = "…";
+    try {
+      const r = await api.editor_test(txt);
+      $("#edTestOut").innerHTML = `<div><b>${t("edBefore")}</b>${esc(txt)}</div><div><b>${t("edAfter")}</b>${esc(r.text)}</div>`;
+      $("#edTestInfo").textContent = `${r.sec} ${t("s")}`;
+    } finally { $("#edTestGo").disabled = false; }
+  };
+  $("#edRemove").onclick = async (e) => { if (!confirmInline(e.target)) return; await api.editor_remove(); settings.editor = false; renderEditor(); };
+}
+
+/* ---------- window chrome: drag, resize, buttons ---------- */
+document.querySelectorAll(".resize").forEach((el) => el.addEventListener("mousedown", (e) => {
+  if (e.button !== 0) return; e.preventDefault(); api && api.win_resize(el.dataset.e);
+}));
+const NO_DRAG = "button, input, [contenteditable=true], .crumb.link, .item, .dd, .menu, a";
+function dragZone(el) {
+  el.addEventListener("mousedown", (e) => {
+    if (e.button !== 0 || e.target.closest(NO_DRAG)) return;
+    e.preventDefault(); api && api.win_drag();
+  });
+  el.addEventListener("dblclick", (e) => { if (!e.target.closest(NO_DRAG)) toggleMax(); });
+}
+dragZone($(".topbar")); dragZone($(".ws"));
+$("#dcard").onclick = () => go("settings");
+$("#upRestart").onclick = async () => {
+  const r = await api.restart();
+  if (!r.ok) toast(r.error === "recording" ? t("upRecBusy") : "Error");
+};
+async function toggleMax() {
+  const maxed = await api.win_toggle_max();
+  document.body.classList.toggle("maxed", !!maxed);
+  $("#maxIcon").innerHTML = maxed
+    ? '<rect x="2.5" y=".5" width="7" height="7" rx="1.5" fill="none" stroke="currentColor"/><path d="M.5 3v5a1.5 1.5 0 0 0 1.5 1.5h5" fill="none" stroke="currentColor"/>'
+    : '<rect x=".5" y=".5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor"/>';
+}
+document.querySelectorAll(".winctl button").forEach((b) => b.onclick = () => {
+  if (b.dataset.w === "min") api.win_min();
+  if (b.dataset.w === "max") toggleMax();
+  if (b.dataset.w === "close") api.win_close();
+});
+
+
+/* ---------- interface zoom: Ctrl +/-, Ctrl+wheel, Ctrl+0 ---------- */
+const ZOOMS = [0.8, 0.9, 1, 1.1, 1.25, 1.4, 1.6];
+let ZOOM = 1;
+function applyZoom(z, save, quiet) {
+  ZOOM = Math.min(1.6, Math.max(0.8, Math.round(z * 100) / 100));
+  document.documentElement.style.zoom = ZOOM === 1 ? "" : String(ZOOM);
+  closeMenu && closeMenu();
+  if (!quiet) toast(`${t("zoom")}: ${Math.round(ZOOM * 100)}%`);
+  if (save && api) { settings.ui_zoom = ZOOM; api.save_settings({ui_zoom: ZOOM}); }
+  if (page === "settings" && !quiet) { const el = $("#s-zoom span"); if (el) el.textContent = Math.round(ZOOM * 100) + "%"; }
+}
+function zoomStep(dir) {
+  const i = ZOOMS.findIndex((v) => v >= ZOOM - 0.001);
+  const cur = i < 0 ? ZOOMS.length - 1 : i;
+  applyZoom(ZOOMS[Math.min(ZOOMS.length - 1, Math.max(0, cur + dir))], true);
+}
+document.addEventListener("keydown", (e) => {
+  if (!e.ctrlKey || e.altKey) return;
+  if (e.key === "=" || e.key === "+" || e.code === "NumpadAdd" || e.code === "Equal") { e.preventDefault(); zoomStep(1); }
+  else if (e.key === "-" || e.code === "NumpadSubtract" || e.code === "Minus") { e.preventDefault(); zoomStep(-1); }
+  else if (e.key === "0" || e.code === "Digit0" || e.code === "Numpad0") { e.preventDefault(); applyZoom(1, true); }
+}, true);
+window.addEventListener("wheel", (e) => {
+  if (!e.ctrlKey) return;
+  e.preventDefault();
+  clearTimeout(zoomStep._w);
+  const dir = e.deltaY < 0 ? 1 : -1;
+  if (!zoomStep._busy) { zoomStep(dir); zoomStep._busy = true; }
+  zoomStep._w = setTimeout(() => { zoomStep._busy = false; }, 120);
+}, {passive: false});
+
+/* ---------- boot ---------- */
+async function boot() {
+  api = window.pywebview.api;
+  settings = await api.get_settings();
+  applyTheme();
+  applyZoom(settings.ui_zoom || 1, false, true);
+  engineState = await api.get_state();
+  (await api.get_jobs()).forEach((j) => jobs.set(j.id, j));
+  try { (await api.get_yt_jobs()).forEach((j) => ytJobs.set(j.id, j)); } catch (e) {}
+  try { const v = await api.get_version(); if (v.pending) vt.onUpdate({latest: v.pending}); } catch (e) {}
+  trs = await api.list_transcripts();
+  applyLang();
+  const st = await api.rec_status(0, 0);
+  if (st.state !== "idle") { Object.assign(rec, {state: st.state, elapsed: st.elapsed, peaks: st.peaks.slice(-4000), np: st.npeaks, segs: st.segs, ns: st.nsegs, tid: st.tid}); startPolling(); paintRecNav(); }
+}
+if (window.pywebview && window.pywebview.api) boot();
+else window.addEventListener("pywebviewready", boot);
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+gigaam @ https://github.com/salute-developers/GigaAM/archive/7447938d791c4f3e643386ee22c33777004293a5.zip
+silero-vad==5.1.2
+sounddevice
+pynput
+pystray
+pillow
+pyperclip
+imageio-ffmpeg
+pywebview==5.4
+yt-dlp
+youtube-transcript-api

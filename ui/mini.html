@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>VoiceType mini</title>
+<style>
+:root, [data-theme=light] {
+  --bg: #ffffff; --text: #37352f; --text-2: rgba(55, 53, 47, .65); --text-3: rgba(55, 53, 47, .45);
+  --hover: rgba(55, 53, 47, .07); --border: rgba(55, 53, 47, .14); --red: #e03e3e; --orange: #d9730d;
+  --blue: #2383e2; --wave: #37352f;
+}
+[data-theme=dark] {
+  --bg: #252525; --text: rgba(255, 255, 255, .86); --text-2: rgba(255, 255, 255, .5); --text-3: rgba(255, 255, 255, .3);
+  --hover: rgba(255, 255, 255, .07); --border: rgba(255, 255, 255, .13); --red: #ff7369; --orange: #ffa344;
+  --blue: #529cca; --wave: rgba(255, 255, 255, .86);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; }
+body {
+  background: var(--bg); color: var(--text); user-select: none; cursor: default;
+  font-family: ui-sans-serif, -apple-system, "Segoe UI Variable Display", "Segoe UI", sans-serif; font-size: 13px;
+  display: flex; align-items: center; gap: 12px; padding: 0 10px 0 16px;
+}
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--red); flex: none; animation: blink 1.1s infinite; }
+body.paused .dot { background: var(--orange); animation: none; }
+body.finishing .dot { background: var(--blue); }
+@keyframes blink { 50% { opacity: .3; } }
+.tb { display: flex; flex-direction: column; line-height: 1.15; flex: none; min-width: 74px; }
+.time { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.lbl { font-size: 11.5px; color: var(--text-3); margin-top: 2px; white-space: nowrap; }
+canvas { flex: 1; height: 30px; min-width: 40px; }
+.btns { display: flex; gap: 4px; flex: none; }
+button {
+  width: 34px; height: 34px; border-radius: 10px; border: 0; background: transparent; color: var(--text);
+  display: grid; place-items: center; cursor: pointer; transition: background .12s ease, transform .1s ease;
+}
+button:hover { background: var(--hover); }
+button:active { transform: scale(.94); }
+button.stop { background: var(--text); color: var(--bg); }
+button.stop:hover { opacity: .88; background: var(--text); }
+button.open { color: var(--text-2); width: 30px; }
+button[disabled] { opacity: .35; pointer-events: none; }
+</style>
+</head>
+<body>
+  <span class="dot"></span>
+  <div class="tb"><span class="time" id="time">00:00:00</span><span class="lbl" id="lbl"></span></div>
+  <canvas id="wave"></canvas>
+  <div class="btns">
+    <button id="bPause" title=""></button>
+    <button id="bStop" class="stop" title=""><svg width="14" height="14" viewBox="0 0 14 14"><rect x="2" y="2" width="10" height="10" rx="2.5" fill="currentColor"/></svg></button>
+    <button id="bOpen" class="open" title=""><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2h4v4M12 2 7 7M6 3H3.5A1.5 1.5 0 0 0 2 4.5v6A1.5 1.5 0 0 0 3.5 12h6a1.5 1.5 0 0 0 1.5-1.5V8"/></svg></button>
+  </div>
+<script>
+const T = {
+  ru: {rec: "Идёт запись", paused: "Пауза", finishing: "Дописываю…", pause: "Пауза", resume: "Продолжить", stop: "Завершить", open: "Открыть VoiceType"},
+  en: {rec: "Recording", paused: "Paused", finishing: "Finishing…", pause: "Pause", resume: "Resume", stop: "Finish", open: "Open VoiceType"},
+};
+const PAUSE = '<svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="3" y="2" width="3" height="10" rx="1.2"/><rect x="8" y="2" width="3" height="10" rx="1.2"/></svg>';
+const PLAY = '<svg width="14" height="14" viewBox="0 0 14 14"><path d="M4 2.8v8.4a.8.8 0 0 0 1.2.7l6.8-4.2a.8.8 0 0 0 0-1.4L5.2 2.1A.8.8 0 0 0 4 2.8z" fill="currentColor"/></svg>';
+let api, L = T.ru, st = {state: "idle", elapsed: 0}, peaks = [], np = 0;
+const $ = (s) => document.querySelector(s);
+const clock = (s) => { s = Math.floor(s || 0); const p = (n) => String(n).padStart(2, "0"); return `${p(Math.floor(s / 3600))}:${p(Math.floor(s % 3600 / 60))}:${p(s % 60)}`; };
+
+function paint() {
+  document.body.className = st.state;
+  $("#time").textContent = clock(st.elapsed);
+  $("#lbl").textContent = L[st.state] || "";
+  const paused = st.state === "paused";
+  $("#bPause").innerHTML = paused ? PLAY : PAUSE;
+  $("#bPause").title = paused ? L.resume : L.pause;
+  $("#bPause").disabled = $("#bStop").disabled = st.state === "finishing";
+}
+function draw() {
+  const cv = $("#wave"), dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth, h = cv.clientHeight;
+  if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
+  const css = getComputedStyle(document.documentElement);
+  g.fillStyle = st.state === "rec" ? css.getPropertyValue("--wave") : css.getPropertyValue("--text-3");
+  const step = 4, n = Math.floor(w / step), arr = peaks.slice(-n), off = n - arr.length;
+  for (let i = 0; i < arr.length; i++) {
+    const v = Math.min(1, Math.pow(arr[i], 0.6) * 1.4), bh = Math.max(2, v * (h - 4));
+    g.beginPath(); g.roundRect((off + i) * step, (h - bh) / 2, 2.5, bh, 1.25); g.fill();
+  }
+}
+// poll fast only while the pill is on screen; when hidden, check rarely
+async function poll() {
+  let visible = false;
+  try {
+    const s = await api.status(np);
+    st = s; visible = !!s.visible;
+    if (s.peaks.length) { peaks.push(...s.peaks); np = s.npeaks; if (peaks.length > 600) peaks.splice(0, peaks.length - 600); }
+    if (visible) { paint(); draw(); }
+  } catch (e) {}
+  setTimeout(poll, visible ? 120 : 1000);
+}
+async function boot() {
+  api = window.pywebview.api;
+  const init = await api.init();
+  document.documentElement.dataset.theme = init.dark ? "dark" : "light";
+  L = T[init.lang] || T.ru;
+  $("#bStop").title = L.stop; $("#bOpen").title = L.open;
+  poll();
+}
+$("#bPause").onclick = () => st.state === "paused" ? api.resume() : api.pause();
+$("#bStop").onclick = () => api.stop();
+$("#bOpen").onclick = () => api.open_main();
+document.addEventListener("mousedown", (e) => {
+  if (e.button !== 0 || e.target.closest("button")) return;
+  e.preventDefault(); api && api.drag();
+});
+if (window.pywebview && window.pywebview.api) boot(); else window.addEventListener("pywebviewready", boot);
+</script>
+</body>
+</html>
