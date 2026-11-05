@@ -1159,7 +1159,7 @@ class Api:
                 last[0] = time.time()
                 job.update(progress=int(frac * 100) if frac is not None else None, sec=int(sec))
                 self._push_yt(job)
-        audio, meta = youtube.stream_audio(job["url"], got)
+        audio, meta = youtube.stream_audio(job["url"], got, browser=eng.cfg.get("cookies_browser", ""))
         job.update(name=meta["title"], status="run", progress=0)
         self._push_yt(job)
         while eng.rec is None:

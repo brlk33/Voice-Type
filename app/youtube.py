@@ -126,10 +126,10 @@ def paragraphs(cues, mode="long", every=60.0):
 
 
 # ---------------------------------------------------------------- fetching
-def _via_ytdlp(url, pref):
+def _via_ytdlp(url, pref, browser=""):
     import yt_dlp
     opts = {"skip_download": True, "quiet": True, "no_warnings": True, "noplaylist": True,
-            "socket_timeout": 20}
+            "socket_timeout": 20, **_cookie_opts(browser)}
     with yt_dlp.YoutubeDL(opts) as ydl:
         info = ydl.extract_info(url, download=False)
         picked = pick_track(info, pref)
@@ -218,8 +218,38 @@ _FMT = ("bestaudio[protocol^=http][protocol!*=dash]/bestaudio[protocol^=m3u8]/"
         "best[protocol^=http][protocol!*=dash]/best[protocol^=m3u8]/bestaudio/best")
 
 
+def system_proxy(url: str):
+    """The proxy Windows uses (set by VPN apps like Hiddify/v2rayN in «system proxy» mode),
+    or HTTP(S)_PROXY. yt-dlp picks it up by itself; ffmpeg doesn't, so we pass it on."""
+    import urllib.parse
+    import urllib.request
+    try:
+        host = urllib.parse.urlsplit(url).hostname or ""
+        if host and urllib.request.proxy_bypass(host):
+            return None
+        pr = urllib.request.getproxies()
+    except Exception:
+        return None
+    p = pr.get("https" if url.startswith("https") else "http") or pr.get("http") or pr.get("https")
+    if not p:
+        return None
+    if "://" not in p:
+        p = "http://" + p
+    return p if p.startswith(("http://", "https://")) else None  # ffmpeg can't do SOCKS
+
+
+def _short(msg: str) -> str:
+    """Error text for the UI: no endless signed URLs."""
+    msg = re.sub(r"https?://\S+", lambda m: m.group(0).split("?")[0][:60] + "…", msg)
+    return re.sub(r"\s+", " ", msg).strip()
+
+
+def _cookie_opts(browser):
+    return {"cookiesfrombrowser": (browser,)} if browser else {}
+
+
 def _yt_error(e):
-    msg = str(e)
+    msg = _short(str(e))
     low = msg.lower()
     if "unsupported url" in low:
         return YTError("unsupported", msg[-200:])
@@ -228,19 +258,25 @@ def _yt_error(e):
     return YTError("network", msg[-300:])
 
 
-def stream_audio(url: str, progress=None, stop=None):
-    """-> (float32 mono 16 kHz audio, meta). progress(fraction or None, seconds_read)."""
+def stream_audio(url: str, progress=None, stop=None, browser=""):
+    """-> (float32 mono 16 kHz audio, meta). progress(fraction or None, seconds_read).
+    browser: take the site login (cookies) from this browser, e.g. "firefox"."""
     import subprocess
     import numpy as np
     import yt_dlp
     import core
     url = url.strip()
-    opts = {"quiet": True, "no_warnings": True, "noplaylist": True, "socket_timeout": 20, "format": _FMT}
+    opts = {"quiet": True, "no_warnings": True, "noplaylist": True, "socket_timeout": 20, "format": _FMT,
+            **_cookie_opts(browser)}
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=False)
     except yt_dlp.utils.DownloadError as e:
         raise _yt_error(e)
+    except Exception as e:  # e.g. the browser's cookie store can't be read
+        if browser:
+            raise YTError("cookies", _short(str(e))[-200:])
+        raise
     if info.get("_type") == "playlist":
         entries = [x for x in (info.get("entries") or []) if x]
         if not entries:
@@ -256,6 +292,10 @@ def stream_audio(url: str, progress=None, stop=None):
     cmd = [core.ffmpeg_exe(), "-nostdin", "-hide_banner", "-loglevel", "error"]
     if media.startswith("http"):
         cmd += ["-rw_timeout", "30000000"]
+        proxy = system_proxy(media)
+        if proxy:
+            cmd += ["-http_proxy", proxy]
+            log.info("Ссылка: звук через прокси %s", proxy)
     if headers:
         cmd += ["-headers", headers]
     if fmt.get("cookies"):
@@ -283,7 +323,7 @@ def stream_audio(url: str, progress=None, stop=None):
         if p.poll() is None:
             p.kill()
     if p.returncode != 0 and not got:
-        raise YTError("network", (err or "ffmpeg")[-300:])
+        raise YTError("network", _short(err or "ffmpeg")[-200:])
     audio = np.frombuffer(b"".join(chunks), dtype=np.int16).astype(np.float32) / 32768.0
     if not len(audio):
         raise YTError("noaudio", info.get("title") or url)

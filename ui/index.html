@@ -337,6 +337,8 @@ h3 { font-size: 13px; font-weight: 600; margin: 40px 0 12px 4px; color: var(--te
 }
 .ytin:focus { box-shadow: var(--blue) 0 0 0 1.5px inset; }
 .ytin::placeholder { color: var(--text-3); }
+#ytJobsBox .err { overflow-wrap: anywhere; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+#ytJobsBox .row > div { min-width: 0; }
 .segm { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 12px; padding: 4px; border-radius: 12px; background: var(--bg); box-shadow: var(--divider) 0 0 0 1px inset; }
 .segm button { border: 0; border-radius: 9px; padding: 8px 12px; background: transparent; color: var(--text-2); font: inherit; cursor: pointer; text-align: left; display: flex; flex-direction: column; gap: 1px; transition: background .12s, color .12s, box-shadow .12s; }
 .segm button b { font-weight: 500; font-size: 13.5px; }
@@ -555,6 +557,8 @@ const I18N = {
     lkSubs: "Субтитры YouTube", lkSubsD: "за пару секунд", lkAsr: "Нейросеть", lkAsrD: "дольше, зато с пунктуацией",
     lkAsrNote: "Нейросеть распознает звук ролика. Видео не скачивается: звук читается потоком прямо в память и после распознавания исчезает.",
     lkEmpty: "Для YouTube можно взять готовые субтитры или распознать нейросетью, для остальных сайтов — нейросеть.",
+    lkCk: "Вход на сайт", lkCkNone: "Без входа", lkCkHint: "Для роликов, которые сайт показывает только после входа (часто Instagram): программа возьмёт вход из браузера, где вы залогинены. Надёжнее всего Firefox; Chrome и Edge часто не дают прочитать вход.",
+    err_cookies: "Не удалось взять вход из браузера. Закройте браузер и попробуйте ещё раз или выберите другой.",
     lkFetch: "Получаю звук", lkRec: "Распознаю", lkTryAsr: "Распознать нейросетью", lkSrc: "Нейросеть GigaAM",
     err_login: "Сайт не отдаёт это видео без входа в аккаунт (часто так у Instagram) или ограничил частые запросы.",
     err_unsupported: "Этот сайт не поддерживается или по ссылке нет видео.", err_noaudio: "В видео нет звука.", err_cancel: "Отменено",
@@ -661,6 +665,8 @@ const I18N = {
     lkSubs: "YouTube subtitles", lkSubsD: "in a couple of seconds", lkAsr: "Neural network", lkAsrD: "slower, with punctuation",
     lkAsrNote: "The neural network recognizes the video's sound. The video is not downloaded: the sound is streamed into memory and is gone after recognition.",
     lkEmpty: "For YouTube you can take its subtitles or use the neural network; other sites use the neural network.",
+    lkCk: "Site login", lkCkNone: "No login", lkCkHint: "For videos a site shows only after logging in (often Instagram): the app uses the login from a browser where you're signed in. Firefox is the most reliable; Chrome and Edge often don't allow reading it.",
+    err_cookies: "Couldn't use the browser's login. Close the browser and try again, or pick another one.",
     lkFetch: "Getting audio", lkRec: "Recognizing", lkTryAsr: "Recognize with the neural network", lkSrc: "GigaAM neural network",
     err_login: "The site won't give this video without logging in (common on Instagram) or limited frequent requests.",
     err_unsupported: "This site isn't supported or there's no video at the link.", err_noaudio: "The video has no sound.", err_cancel: "Cancelled",
@@ -1187,7 +1193,14 @@ function pageYoutube() {
     const u = $("#ytUrl").value.trim().split(/\s+/)[0] || "";
     const box = $("#lkOpts");
     if (!u) { box.innerHTML = `<div class="lknote">${IC.info}<span>${t("lkEmpty")}</span></div>`; return; }
-    if (!isYt(u)) { box.innerHTML = `<div class="lknote">${IC.info}<span>${t("lkAsrNote")}</span></div>`; return; }
+    if (!isYt(u)) {
+      const C = [{v: "", label: t("lkCkNone")}, {v: "firefox", label: "Firefox"}, {v: "chrome", label: "Chrome"}, {v: "edge", label: "Edge"},
+        {v: "opera", label: "Opera"}, {v: "brave", label: "Brave"}, {v: "vivaldi", label: "Vivaldi"}];
+      box.innerHTML = `<div class="ytopts"><span>${t("lkCk")}</span>${ddHtml("lkCkDd", C, settings.cookies_browser || "")}<span class="sp"></span></div>
+        <div class="lknote">${IC.info}<span>${t("lkAsrNote")} ${t("lkCkHint")}</span></div>`;
+      ddBind("lkCkDd", C, (v) => { settings.cookies_browser = v; api.save_settings({cookies_browser: v}); });
+      return;
+    }
     box.innerHTML = `<div class="segm" id="lkSeg">
         <button data-m="subs" class="${ytMode === "subs" ? "on" : ""}"><b>${t("lkSubs")}</b><small>${t("lkSubsD")}</small></button>
         <button data-m="asr" class="${ytMode === "asr" ? "on" : ""}"><b>${t("lkAsr")}</b><small>${t("lkAsrD")}</small></button>
@@ -1226,7 +1239,7 @@ function renderYtJobs() {
       : j.status === "done" ? `<span class="tag green">${t("ytDone")}</span>`
       : `<span class="tag red">${t("qErr")}</span>`;
     const sub = j.status === "err"
-      ? `<div class="err">${esc(t("err_" + (j.code || "other")))}${j.code === "network" || j.code === "other" ? ": " + esc(j.error || "") : ""}</div>`
+      ? `<div class="err">${esc(t("err_" + (j.code || "other")).replace(/\.$/, ""))}${(j.code === "network" || j.code === "other") && j.error ? ": " + esc(j.error) : "."}</div>`
         + (j.code === "nosubs" ? `<button class="btn secondary sm lkretry" data-url="${esc(j.url)}">${t("lkTryAsr")}</button>` : "")
       : (j.name !== j.url ? `<div class="sub">${esc(j.url)}</div>` : "");
     return `<div class="row ${j.status === "done" ? "click" : ""}" data-tid="${j.tid || ""}">

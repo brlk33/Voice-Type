@@ -53,7 +53,8 @@ DEFAULT_CONFIG = {
                      "Adobe", "Alt+Tab", "Ctrl", "Shift", "FPS", "YouTube", "Telegram", "Notion"],
     "mini_pos": None,
     "auto_update": True,
-    "lang_mode": "auto",  # with the English model installed: ru | auto | en
+    "lang_mode": "auto",
+    "cookies_browser": "",  # links: use this browser's site logins (firefox, chrome, edge...)  # with the English model installed: ru | auto | en
 }
 
 
