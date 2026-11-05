@@ -135,8 +135,17 @@ def _install_model(progress):
 _install_state = {"running": False, "progress": 0.0, "label": "", "error": ""}
 
 
+def disk_size() -> int:
+    """Bytes the editor takes on disk (model + llama.cpp)."""
+    total = 0
+    for d in (MODEL_DIR, LLAMA_DIR):
+        if d.exists():
+            total += sum(f.stat().st_size for f in d.rglob("*") if f.is_file())
+    return total
+
+
 def install_status():
-    return dict(_install_state, installed=installed())
+    return dict(_install_state, installed=installed(), size=disk_size() if installed() else 0)
 
 
 def install_async(on_done=None):
@@ -165,10 +174,17 @@ def install_async(on_done=None):
     threading.Thread(target=work, daemon=True).start()
 
 
-def uninstall():
+def uninstall() -> bool:
+    """Delete the model and llama.cpp from disk. True when everything is gone."""
     SERVER.stop()
-    shutil.rmtree(MODEL_DIR, ignore_errors=True)
-    shutil.rmtree(LLAMA_DIR, ignore_errors=True)
+    _kill_orphans()
+    for _ in range(10):  # the server may still hold its files for a moment
+        shutil.rmtree(MODEL_DIR, ignore_errors=True)
+        shutil.rmtree(LLAMA_DIR, ignore_errors=True)
+        if not MODEL_DIR.exists() and not LLAMA_DIR.exists():
+            return True
+        time.sleep(0.5)
+    return False
 
 
 # ---------------------------------------------------------------- server

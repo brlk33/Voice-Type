@@ -19,6 +19,7 @@ EXE = SCRIPTS / "VoiceType.exe"
 ICO = ROOT / "voicetype.ico"
 APP = ROOT / "app" / "app.py"
 RCEDIT = ROOT / "tools" / "rcedit.exe"
+VERSION = (ROOT / "version.txt").read_text(encoding="utf-8").strip() if (ROOT / "version.txt").exists() else "1.0.0"
 RCEDIT_URL = "https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe"
 
 
@@ -63,7 +64,7 @@ def main():
                     "--set-version-string", "InternalName", "VoiceType",
                     "--set-version-string", "OriginalFilename", "VoiceType.exe",
                     "--set-version-string", "LegalCopyright", "",
-                    "--set-file-version", "1.0.0", "--set-product-version", "1.0.0"], check=True)
+                    "--set-file-version", VERSION, "--set-product-version", VERSION], check=True)
 
     step("Checking that VoiceType.exe runs the app's Python")
     probe = ROOT / "logs" / "exe_check.txt"
@@ -101,6 +102,9 @@ def main():
     subprocess.run(["ie4uinit.exe", "-ClearIconCache"], capture_output=True)
     subprocess.run(["ie4uinit.exe", "-show"], capture_output=True)
 
+    if "--no-start" in sys.argv:
+        print("\nDONE")
+        return
     step("Starting VoiceType")
     subprocess.Popen([str(EXE), str(APP)], cwd=str(ROOT), creationflags=0x00000008)  # DETACHED_PROCESS
     print("\nDONE")

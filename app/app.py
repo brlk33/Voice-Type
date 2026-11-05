@@ -849,9 +849,10 @@ class Api:
         return True
 
     def editor_remove(self):
-        editor.uninstall()
+        ok = editor.uninstall()
         self.save_settings({"editor": False})
-        return True
+        log.info("Редактор удалён с диска: %s", ok)
+        return ok
 
     def editor_test(self, text):
         eng = self._engine

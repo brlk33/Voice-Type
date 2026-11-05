@@ -1,0 +1,4 @@
+*.bat -text
+*.exe binary
+*.ico binary
+*.bmp binary

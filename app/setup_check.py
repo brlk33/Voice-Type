@@ -18,7 +18,7 @@ else:
 
 cfg = core.load_config()
 print("Скачиваю и загружаю модель GigaAM (около 1 ГБ, один раз)...")
-rec = core.Recognizer(cfg)
+rec = core.Recognizer(cfg, progress=lambda p: print(f"  {p}%", flush=True))
 print("Модель:", rec.model_name, "на", rec.device)
 if rec.model_name != cfg["model"]:
     cfg["model"] = rec.model_name

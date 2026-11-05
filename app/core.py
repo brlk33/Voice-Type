@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import wave
 from pathlib import Path
 
@@ -167,8 +168,102 @@ class Dictionary:
 
 
 # ---------------------------------------------------------------- recognizer
+GIGAAM_URL = "https://cdn.chatwm.opensmodel.sberdevices.ru/GigaAM"
+
+
+def _md5(path):
+    import hashlib
+    h = hashlib.md5()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def download(url, dest, progress=None):
+    """Download with fallbacks. Python's TLS can fail where Windows' own stack works
+    (antivirus / VPN inspecting traffic, old certificate chains), so if urllib fails we
+    try curl.exe (built into Windows 10+, uses the Windows certificate store) and then
+    PowerShell. Raises RuntimeError with all the reasons if nothing worked."""
+    import shutil
+    import subprocess
+    import urllib.request
+    dest = Path(dest)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    tmp = dest.with_suffix(dest.suffix + ".part")
+    errors = []
+
+    def via_urllib():
+        req = urllib.request.Request(url, headers={"User-Agent": "VoiceType"})
+        with urllib.request.urlopen(req, timeout=60) as r, open(tmp, "wb") as f:
+            total = int(r.headers.get("Content-Length") or 0)
+            got, last = 0, -1
+            while True:
+                buf = r.read(1 << 20)
+                if not buf:
+                    break
+                f.write(buf)
+                got += len(buf)
+                pct = int(got * 100 / total) if total else -1
+                if progress and pct != last and pct % 5 == 0:
+                    last = pct
+                    progress(pct)
+
+    def via_curl():
+        curl = shutil.which("curl.exe") or os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32", "curl.exe")
+        if not os.path.exists(curl):
+            raise RuntimeError("curl.exe not found")
+        r = subprocess.run([curl, "-fL", "--retry", "3", "--ssl-no-revoke", "-o", str(tmp), url],
+                           capture_output=True, text=True, creationflags=0x08000000 if os.name == "nt" else 0)
+        if r.returncode != 0:
+            raise RuntimeError((r.stderr or "").strip()[-300:] or f"curl exit {r.returncode}")
+
+    def via_powershell():
+        ps = ("$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';"
+              "[Net.ServicePointManager]::SecurityProtocol='Tls12';"
+              f"Invoke-WebRequest -UseBasicParsing '{url}' -OutFile '{tmp}'")
+        r = subprocess.run(["powershell", "-NoProfile", "-Command", ps], capture_output=True, text=True,
+                           creationflags=0x08000000 if os.name == "nt" else 0)
+        if r.returncode != 0:
+            raise RuntimeError((r.stderr or "").strip()[-300:])
+
+    ways = [via_urllib] + ([via_curl, via_powershell] if os.name == "nt" else [])
+    for way in ways:
+        for attempt in range(2):
+            try:
+                way()
+                os.replace(tmp, dest)
+                return dest
+            except Exception as e:
+                errors.append(f"{way.__name__[4:]}: {e}")
+                log.warning("Загрузка %s (%s, попытка %d): %s", url.rsplit("/", 1)[-1], way.__name__[4:], attempt + 1, e)
+                try:
+                    tmp.unlink()
+                except OSError:
+                    pass
+                time.sleep(2)
+    raise RuntimeError("download failed: " + " | ".join(errors[-3:]))
+
+
+def fetch_gigaam(name, models_dir, progress=None):
+    """Make sure models/<name>.ckpt (and the tokenizer for e2e models) is on disk and intact."""
+    import gigaam
+    hashes = getattr(gigaam, "_MODEL_HASHES", {})
+    ckpt = Path(models_dir) / f"{name}.ckpt"
+    if not ckpt.exists():
+        log.info("Скачиваю %s ...", ckpt.name)
+        download(f"{GIGAAM_URL}/{name}.ckpt", ckpt, progress)
+        if hashes.get(name) and _md5(ckpt) != hashes[name]:
+            ckpt.unlink()
+            raise RuntimeError(f"{ckpt.name}: checksum mismatch (download was damaged)")
+    if "e2e" in name or name == "v1_rnnt":
+        tok = Path(models_dir) / f"{name}_tokenizer.model"
+        if not tok.exists():
+            download(f"{GIGAAM_URL}/{name}_tokenizer.model", tok)
+
+
 class Recognizer:
-    def __init__(self, cfg: dict):
+    def __init__(self, cfg: dict, progress=None):
         import torch
         import gigaam
         self.torch = torch
@@ -186,13 +281,19 @@ class Recognizer:
         for name in dict.fromkeys([wanted, "v3_e2e_ctc"]):
             try:
                 log.info("Загружаю модель %s ...", name)
+                fetch_gigaam(name, models_dir, progress)
                 self.model = gigaam.load_model(name, device=dev, download_root=models_dir)
                 self.model_name = name
                 break
             except Exception:
                 log.exception("Не удалось загрузить %s", name)
         if self.model is None:
-            raise RuntimeError("Не удалось загрузить ни одну модель GigaAM, см. logs")
+            raise RuntimeError(
+                "Не удалось скачать модель GigaAM. Похоже, сервер Сбера недоступен из вашей сети "
+                "(часто мешает антивирус или VPN). Можно скачать вручную в браузере:\n"
+                f"  {GIGAAM_URL}/{wanted}.ckpt\n"
+                + (f"  {GIGAAM_URL}/{wanted}_tokenizer.model\n" if "e2e" in wanted else "")
+                + f"и положить в папку {models_dir}, затем запустить установку снова.")
         self._lock = threading.Lock()
         self._vad = None
         self._vad_lock = threading.Lock()

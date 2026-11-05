@@ -9,6 +9,17 @@ set "UV_HTTP_TIMEOUT=300"
 set "PY=%ROOT%.venv\Scripts\python.exe"
 set "PYTHONIOENCODING=utf-8"
 set "PYTHONUTF8=1"
+set "SILENT="
+set "NOSTART="
+rem /silent: run from VoiceType-Setup.exe - no pauses, the setup window shows the output
+if /i "%~1"=="/silent" (
+  set "SILENT=1"
+  set "NOSTART=--no-start"
+  rem the setup window reads output in the Windows ANSI code page
+  set "PYTHONIOENCODING=mbcs:replace"
+  set "PYTHONUTF8=0"
+  set "NO_COLOR=1"
+)
 title VoiceType install
 
 echo.
@@ -38,13 +49,13 @@ echo === [5/6] Model download and check ===
 
 echo.
 echo === [6/6] VoiceType.exe and shortcuts ===
-"%PY%" app\make_exe.py || goto :fail
+"%PY%" app\make_exe.py %NOSTART% || goto :fail
 
 echo.
 echo ==========================================================
 echo  DONE. Start VoiceType with the desktop shortcut or start.bat
 echo ==========================================================
-pause
+if not defined SILENT pause
 exit /b 0
 
 :fail
@@ -53,5 +64,5 @@ echo ##########################################################
 echo  INSTALL FAILED. Open an issue on GitHub with a screenshot of this window.
 echo  Log: %ROOT%logs\install.log
 echo ##########################################################
-pause
+if not defined SILENT pause
 exit /b 1

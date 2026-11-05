@@ -187,6 +187,9 @@ h3 { font-size: 13px; font-weight: 600; margin: 40px 0 12px 4px; color: var(--te
 .btn.primary:hover { background: var(--blue-hover); }
 .btn.secondary { background: transparent; box-shadow: var(--border) 0 0 0 1px inset; color: var(--text); }
 .btn.secondary:hover { background: var(--hover); }
+.btn.danger { color: var(--red); gap: 6px; flex-shrink: 0; }
+.btn.danger svg { width: 14px; height: 14px; }
+.btn.danger:hover { background: rgba(224, 62, 62, .08); box-shadow: rgba(224, 62, 62, .35) 0 0 0 1px inset; }
 
 /* drop zone */
 .drop {
@@ -251,12 +254,12 @@ h3 { font-size: 13px; font-weight: 600; margin: 40px 0 12px 4px; color: var(--te
 .tr { display: grid; grid-template-columns: 1fr 1fr 40px; }
 .tr + .tr { box-shadow: var(--divider) 0 1px 0 0 inset; }
 .tr > div { min-height: 42px; display: flex; align-items: center; }
-.tr.th > div { color: var(--text-2); font-size: 13px; gap: 8px; padding: 0 14px; height: 40px; background: var(--card); }
+.tr.th > div { color: var(--text-2); font-size: 13px; gap: 8px; padding: 0 17px; height: 40px; background: var(--card); }
 .tr.th svg { color: var(--text-3); }
 .tr input { width: 100%; border: 0; background: transparent; outline: none; padding: 10px 14px; user-select: text; border-radius: 8px; transition: background .12s, box-shadow .12s; }
 .tr input:hover { background: var(--hover); }
 .tr input:focus { box-shadow: var(--blue) 0 0 0 1.5px inset; background: var(--bg); }
-.tr > div:not(.x) { padding: 3px; }
+.tr:not(.th) > div:not(.x) { padding: 3px; }
 .tr .x { opacity: 0; justify-content: center; cursor: pointer; color: var(--text-3); transition: opacity .12s, color .12s; }
 .tr:hover .x { opacity: 1; }
 .tr .x:hover { color: var(--red); }
@@ -512,7 +515,9 @@ const I18N = {
     edOn: "Включить редактор", edModes: "Где исправлять", edDict: "Диктовка (+1–2 с перед вставкой)", edRec: "Запись", edFiles: "Файлы", edYt: "YouTube (заодно расставит пунктуацию)",
     edTerms: "Ваши термины", edTermsD: "Через запятую — редактор будет писать их именно так. Слова из словаря замен добавляются сами.",
     edTest: "Проверить", edTestPh: "Вставьте сюда фразу, например: я открыл автор эффектс и нажал альт таб", edBefore: "Было", edAfter: "Стало",
-    edRemove: "Удалить редактор", edErr: "Ошибка установки", edEditing: "Редактирую",
+    edRemove: "Удалить редактор с компьютера", edRemoveBtn: "Удалить", edRemoveQ: "Точно удалить?",
+    edRemoveD: "Выключатель выше только отключает его. Удаление стирает модель и освобождает {gb} ГБ. Поставить заново можно в любой момент.",
+    edRemoved: "Редактор удалён", edRemoveFail: "Не всё удалилось — закройте программу и удалите папки tools\\llama и models\\editor", edErr: "Ошибка установки", edEditing: "Редактирую",
     h: "ч", m: "мин", s: "с",
   },
   en: {
@@ -582,7 +587,9 @@ const I18N = {
     edOn: "Enable editor", edModes: "Where to fix", edDict: "Dictation (+1–2 s before pasting)", edRec: "Recording", edFiles: "Files", edYt: "YouTube (also adds punctuation)",
     edTerms: "Your terms", edTermsD: "Comma-separated — the editor will spell them exactly like this. Words from the dictionary are added automatically.",
     edTest: "Test", edTestPh: "Paste a phrase here, e.g.: я открыл автор эффектс и нажал альт таб", edBefore: "Before", edAfter: "After",
-    edRemove: "Remove editor", edErr: "Install error", edEditing: "Editing",
+    edRemove: "Remove the editor from this computer", edRemoveBtn: "Remove", edRemoveQ: "Sure?",
+    edRemoveD: "The switch above only turns it off. Removing deletes the model and frees {gb} GB. You can install it again any time.",
+    edRemoved: "Editor removed", edRemoveFail: "Some files are still there: quit the app and delete tools\\llama and models\\editor", edErr: "Install error", edEditing: "Editing",
     h: "h", m: "min", s: "s",
   },
 };
@@ -1325,8 +1332,9 @@ async function renderEditor() {
     <div class="edwrap"><b style="font-weight:500">${t("edTest")}</b><small></small>
       <textarea class="edtest" id="edTestIn" placeholder="${esc(t("edTestPh"))}"></textarea>
       <div style="margin-top:8px;display:flex;align-items:center;gap:12px"><button class="btn secondary" id="edTestGo">${t("edTest")}</button><span class="edstate" id="edTestInfo"></span></div>
-      <div class="edres" id="edTestOut"></div>
-      <div style="margin-top:12px"><button class="linkbtn" id="edRemove">${t("edRemove")}</button></div></div>`;
+      <div class="edres" id="edTestOut"></div></div>
+    <div class="srow" style="box-shadow: var(--divider) 0 1px 0 0 inset"><div class="sl"><b>${t("edRemove")}</b><small>${t("edRemoveD").replace("{gb}", (st.size / 1073741824).toLocaleString(LANG, {maximumFractionDigits: 1}))}</small></div>
+      <button class="btn secondary danger" id="edRemove">${IC.x}<span>${t("edRemoveBtn")}</span></button></div>`;
   $("#ed-on").onchange = (e) => { settings.editor = e.target.checked; api.save_settings({editor: e.target.checked}); };
   box.querySelectorAll("[data-ed]").forEach((c) => c.onchange = () => { const k = "editor_" + c.dataset.ed; settings[k] = c.checked; api.save_settings({[k]: c.checked}); });
   $("#edTerms").onchange = () => {
@@ -1342,7 +1350,17 @@ async function renderEditor() {
       $("#edTestInfo").textContent = `${r.sec} ${t("s")}`;
     } finally { $("#edTestGo").disabled = false; }
   };
-  $("#edRemove").onclick = async (e) => { if (!confirmInline(e.target)) return; await api.editor_remove(); settings.editor = false; renderEditor(); };
+  $("#edRemove").onclick = async () => {
+    const b = $("#edRemove");
+    if (!b.dataset.armed) {  // second click within 3 s confirms
+      b.dataset.armed = "1"; b.querySelector("span").textContent = t("edRemoveQ");
+      setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.querySelector("span").textContent = t("edRemoveBtn"); } }, 3000);
+      return;
+    }
+    b.disabled = true; b.querySelector("span").textContent = "…";
+    const ok = await api.editor_remove(); settings.editor = false;
+    toast(ok ? t("edRemoved") : t("edRemoveFail")); renderEditor();
+  };
 }
 
 /* ---------- window chrome: drag, resize, buttons ---------- */
