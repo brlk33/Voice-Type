@@ -28,7 +28,7 @@ UA = {"User-Agent": "VoiceType-updater"}
 # files and folders the updater may replace (relative to the program folder)
 MANAGED_DIRS = ("app", "ui")
 MANAGED_FILES = ("requirements.txt", "constraints.txt", "install.bat", "update.bat", "start.bat",
-                 "start_debug.bat", "transcribe_files.bat", "build_exe.bat", "gpu.bat", "voicetype.ico",
+                 "start_debug.bat", "transcribe_files.bat", "build_exe.bat", "voicetype.ico",
                  "dictionary.default.txt", "README.md", "version.txt")
 NO_WINDOW = 0x08000000 if os.name == "nt" else 0
 

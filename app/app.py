@@ -860,7 +860,7 @@ class Api:
         """Switch PyTorch build in a console window (the app must be closed for that) and come back."""
         if self._long.state != "idle":
             return {"ok": False, "error": "recording"}
-        bat = core.ROOT / "gpu.bat"
+        bat = core.ROOT / "app" / "gpu.bat"
         if not bat.exists():
             return {"ok": False, "error": "gpu.bat"}
         editor.SERVER.stop()

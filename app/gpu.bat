@@ -1,7 +1,8 @@
 @echo off
 setlocal
-cd /d "%~dp0"
-set "ROOT=%~dp0"
+rem lives in app\ so that updates always deliver it; works from the program folder
+cd /d "%~dp0.."
+set "ROOT=%CD%\"
 set "UV=%ROOT%tools\uv\uv.exe"
 set "UV_CACHE_DIR=%ROOT%cache\uv"
 set "UV_PYTHON_INSTALL_DIR=%ROOT%tools\python"

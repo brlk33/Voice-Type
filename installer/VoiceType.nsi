@@ -121,7 +121,6 @@ Section "$(SecMainName)" SecMain
   File "${SRC}/start_debug.bat"
   File "${SRC}/transcribe_files.bat"
   File "${SRC}/build_exe.bat"
-  File "${SRC}/gpu.bat"
   File "${SRC}/requirements.txt"
   File "${SRC}/constraints.txt"
   File "${SRC}/version.txt"
