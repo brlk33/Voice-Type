@@ -337,13 +337,22 @@ class Engine:
                 self.set_state("ready")
 
     def paste(self, text):
-        import pyperclip
-        old = None
+        """Paste via Ctrl+V. The text is marked «not for clipboard history» and the previous
+        clipboard (text, image, files...) is put back right after."""
         try:
-            old = pyperclip.paste()
+            import clip
+            old = clip.save()
+            ok = clip.set_private_text(text)
         except Exception:
-            pass
-        pyperclip.copy(text)
+            log.exception("Буфер обмена")
+            clip, old, ok = None, None, False
+        if not ok:  # fallback: plain text clipboard
+            import pyperclip
+            try:
+                old_text = pyperclip.paste()
+            except Exception:
+                old_text = None
+            pyperclip.copy(text)
         time.sleep(0.05)
         Key, KeyCode = self.kb.Key, self.kb.KeyCode
         v = KeyCode.from_vk(0x56)  # physical V: works in any keyboard layout
@@ -351,12 +360,14 @@ class Engine:
         self.ctl.press(v)
         self.ctl.release(v)
         self.ctl.release(Key.ctrl)
-        if old is not None:
-            time.sleep(0.4)
-            try:
-                pyperclip.copy(old)
-            except Exception:
-                pass
+        time.sleep(0.4)  # let the target app read the clipboard first
+        try:
+            if ok:
+                clip.restore(old)
+            elif old_text is not None:
+                pyperclip.copy(old_text)
+        except Exception:
+            log.exception("Буфер обмена: возврат")
 
 
 # ======================================================================= transcripts store
