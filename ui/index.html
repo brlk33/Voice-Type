@@ -271,7 +271,7 @@ h3 { font-size: 13px; font-weight: 600; margin: 40px 0 12px 4px; color: var(--te
 .srow + .srow { box-shadow: var(--divider) 0 1px 0 0 inset; }
 .srow .sl { flex: 1; }
 .srow .sl b { display: block; font-weight: 500; font-size: 14px; }
-.srow .sl small { display: block; color: var(--text-2); font-size: 12.5px; line-height: 1.5; margin-top: 3px; max-width: 420px; }
+.srow .sl small { display: block; color: var(--text-2); font-size: 12.5px; line-height: 1.6; margin-top: 4px; max-width: 440px; }
 .toggle { position: relative; width: 36px; height: 22px; flex: none; cursor: pointer; }
 .toggle input { position: absolute; opacity: 0; }
 .toggle i { position: absolute; inset: 0; border-radius: 22px; background: var(--toggle-off); transition: background .2s ease; }
@@ -285,10 +285,14 @@ h3 { font-size: 13px; font-weight: 600; margin: 40px 0 12px 4px; color: var(--te
 
 
 /* recorder */
-.recbox { border-radius: 20px; background: var(--card); box-shadow: var(--divider) 0 0 0 1px inset; padding: 22px 24px 24px; }
-.rechead { display: flex; align-items: center; gap: 14px; }
-.timer { font-size: 44px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1; }
-.rstate { display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 12px; border-radius: 14px; font-size: 13px; font-weight: 500; background: var(--hover); color: var(--text-2); margin-left: auto; }
+.recbox { border-radius: 20px; background: var(--card); box-shadow: var(--divider) 0 0 0 1px inset; padding: 22px 24px 26px; }
+.rechead { display: flex; align-items: center; gap: 14px; min-height: 40px; }
+.timer { font-size: 40px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1; color: var(--text-3); transition: color .2s; }
+.recbox.live .timer { color: var(--text); }
+.srcpick { margin-left: auto; display: flex; align-items: center; gap: 10px; color: var(--text-3); font-size: 13px; }
+.srcpick .dd { max-width: 260px; }
+.srcpick .dd[disabled] { opacity: .55; pointer-events: none; }
+.rstate { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 13px; border-radius: 15px; font-size: 13px; font-weight: 500; background: var(--hover); color: var(--text-2); margin-left: auto; }
 .rstate i { width: 8px; height: 8px; border-radius: 50%; background: var(--text-3); }
 .rstate.rec { background: rgba(224, 62, 62, .1); color: var(--red); }
 .rstate.rec i { background: var(--red); animation: blink 1.1s infinite; }
@@ -296,23 +300,26 @@ h3 { font-size: 13px; font-weight: 600; margin: 40px 0 12px 4px; color: var(--te
 .rstate.paused i { background: #ffa344; }
 .rstate.finishing { background: var(--blue-soft); color: var(--blue); }
 .rstate.finishing i { background: var(--blue); animation: blink 1.1s infinite; }
-.wave { position: relative; height: 132px; margin: 20px 0 22px; border-radius: 14px; background: var(--bg); box-shadow: var(--divider) 0 0 0 1px inset; overflow: hidden; }
+.wave { position: relative; height: 120px; margin: 20px 0 24px; border-radius: 14px; background: var(--bg); overflow: hidden; }
 .wave canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .wave .ph { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-3); font-size: 13px; }
-.controls { display: flex; align-items: center; justify-content: center; gap: 18px; }
-.rbtn { border: 0; cursor: pointer; display: grid; place-items: center; border-radius: 50%; transition: transform .1s ease, background .15s ease, box-shadow .15s ease, opacity .15s; }
+.controls { display: flex; align-items: flex-start; justify-content: center; gap: 28px; }
+.ctl { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 64px; }
+.ctl > span { color: var(--text-3); font-size: 12px; white-space: nowrap; }
+.ctl .rbtn.mid { margin: 8px 0; }
+.rbtn { border: 0; cursor: pointer; display: grid; place-items: center; border-radius: 50%; transition: transform .1s ease, background .15s ease, box-shadow .15s ease, opacity .15s, color .15s; }
 .rbtn:active { transform: scale(.95); }
 .rbtn.big { width: 68px; height: 68px; background: var(--red); color: #fff; box-shadow: 0 2px 8px rgba(224, 62, 62, .35); }
 .rbtn.big:hover { box-shadow: 0 4px 14px rgba(224, 62, 62, .45); }
 .rbtn.big.stop { background: var(--text); color: var(--bg); box-shadow: 0 2px 8px rgba(15, 15, 15, .2); }
 .rbtn.mid { width: 52px; height: 52px; background: var(--bg); color: var(--text); box-shadow: var(--border) 0 0 0 1px inset; }
 .rbtn.mid:hover { background: var(--hover); }
-.rbtn.small { width: 40px; height: 40px; background: transparent; color: var(--text-3); }
-.rbtn.small:hover { background: var(--hover); color: var(--red); }
+.rbtn.mid.ghost { background: transparent; box-shadow: none; color: var(--text-3); }
+.rbtn.mid.ghost:hover { background: var(--hover); color: var(--red); }
 .rbtn[disabled] { opacity: .35; pointer-events: none; }
-.rlabels { display: flex; justify-content: center; gap: 18px; margin-top: 8px; color: var(--text-3); font-size: 12px; }
-.rlabels span { text-align: center; }
-.rnote { color: var(--text-3); font-size: 12.5px; margin-top: 14px; text-align: center; line-height: 1.5; }
+.rnotes { margin: 12px 4px 0; display: flex; flex-direction: column; gap: 6px; }
+.rnote { display: flex; align-items: flex-start; gap: 8px; color: var(--text-3); font-size: 12.5px; line-height: 1.55; }
+.rnote svg { flex: none; margin-top: 3px; opacity: .8; }
 .livehead { display: flex; align-items: baseline; gap: 10px; }
 .livehead small { color: var(--text-3); font-size: 12.5px; font-weight: 400; }
 .item .live { margin-left: auto; font-size: 12px; color: var(--red); font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 6px; }
@@ -348,7 +355,8 @@ h3 { font-size: 13px; font-weight: 600; margin: 40px 0 12px 4px; color: var(--te
 /* editor */
 .edbar { height: 6px; border-radius: 6px; background: var(--divider); overflow: hidden; margin-top: 8px; width: 240px; }
 .edbar i { display: block; height: 100%; background: var(--blue); border-radius: 6px; transition: width .3s; }
-.edstate { color: var(--text-2); font-size: 12.5px; display: flex; align-items: center; gap: 6px; }
+.edstate { color: var(--text-2); font-size: 12.5px; display: flex; align-items: center; gap: 6px; line-height: 1.4; }
+.sl .edstate { margin-top: 8px; }
 .edstate .ok { width: 7px; height: 7px; border-radius: 50%; background: #4dab9a; }
 .subtog { display: flex; flex-direction: column; gap: 10px; }
 .subtog label.ck { display: flex; align-items: center; gap: 10px; cursor: pointer; }
@@ -492,7 +500,7 @@ const I18N = {
     recCancelQ: "Удалить эту запись вместе с аудио?", recWaveIdle: "Здесь появится аудиоволна",
     recLive: "Текст по ходу записи", recLag: "появляется с задержкой примерно 20 секунд",
     recNoModel: "Модель ещё загружается, подождите пару секунд.", recMicErr: "Не удалось открыть микрофон",
-    recNote: "Пока идёт запись, диктовка по клавише отключена. Можно свернуть окно — запись продолжится, а в углу экрана появится мини-плеер.",
+    recNote: "Во время записи диктовка по клавише выключена. Окно можно свернуть — в углу экрана останется мини-плеер.",
     recEmpty: "Начните говорить — первые абзацы появятся здесь.",
     cleanT: "Убирать «э-э», «м-м» и повторы", cleanD: "Заминки и подряд повторённые слова и фразы: «я хотел я хотел сказать» → «я хотел сказать».",
     fillT: "Убирать слова-паразиты", fillD: "Типа, как бы, короче, в общем, так сказать, это самое, «ну» в начале фразы. Изредка может убрать нужное слово.",
@@ -513,7 +521,7 @@ const I18N = {
     upVer: "Версия", upCheck: "Проверить", upChecking: "Проверяю…", upLatest: "Установлена последняя версия", upErr: "Не удалось проверить обновления",
     upDone: "Обновление установлено", upRestart: "Перезапустить", upBanner: "Установлена версия", upRecBusy: "Сначала завершите запись",
     upDeps: "Не все библиотеки обновились — запустите update.bat",
-    sEditor: "Редактор", edT: "Модель-редактор", edD: "Небольшая нейросеть на вашей видеокарте исправляет английские названия (After Effects, Figma, Alt+Tab), ошибки и пунктуацию. Не перефразирует.",
+    sEditor: "Редактор", edT: "Модель-редактор", edD: "Нейросеть на видеокарте исправляет английские названия (After Effects, Figma, Alt+Tab), ошибки распознавания и пунктуацию — ваши слова не меняет.",
     edInstall: "Установить · 2,7 ГБ", edInstalling: "Скачиваю", edNotInstalled: "Не установлен", edReady: "Установлен", edGpu: "на видеокарте", edCpu: "на процессоре",
     edOn: "Включить редактор", edModes: "Где исправлять", edDict: "Диктовка (+1–2 с перед вставкой)", edRec: "Запись", edFiles: "Файлы", edYt: "YouTube (заодно расставит пунктуацию)",
     edTerms: "Ваши термины", edTermsD: "Через запятую — редактор будет писать их именно так. Слова из словаря замен добавляются сами.",
@@ -566,7 +574,7 @@ const I18N = {
     recCancelQ: "Delete this recording and its audio?", recWaveIdle: "The waveform will appear here",
     recLive: "Live text", recLag: "appears with a delay of about 20 seconds",
     recNoModel: "The model is still loading, wait a couple of seconds.", recMicErr: "Couldn't open the microphone",
-    recNote: "Dictation hotkey is off while recording. Minimize the window and recording continues, with a small player in the corner of the screen.",
+    recNote: "The dictation key is off while recording. You can minimize the window — a mini player stays in the corner of the screen.",
     recEmpty: "Start talking — the first paragraphs will appear here.",
     cleanT: "Remove “uh”, “um” and repeats", cleanD: "Hesitations and words or phrases said twice in a row: “I wanted I wanted to say” → “I wanted to say”.",
     fillT: "Remove filler words", fillD: "Russian fillers like типа, как бы, короче, в общем, так сказать. May occasionally remove a word you meant.",
@@ -587,7 +595,7 @@ const I18N = {
     upVer: "Version", upCheck: "Check", upChecking: "Checking…", upLatest: "You have the latest version", upErr: "Couldn't check for updates",
     upDone: "Update installed", upRestart: "Restart", upBanner: "Installed version", upRecBusy: "Finish the recording first",
     upDeps: "Some libraries didn't update — run update.bat",
-    sEditor: "Editor", edT: "Editor model", edD: "A small neural network on your GPU fixes English names (After Effects, Figma, Alt+Tab), mistakes and punctuation. It doesn't rephrase.",
+    sEditor: "Editor", edT: "Editor model", edD: "A small neural network on your GPU fixes English names (After Effects, Figma, Alt+Tab), mistakes and punctuation. It doesn't rephrase.",
     edInstall: "Install · 2.7 GB", edInstalling: "Downloading", edNotInstalled: "Not installed", edReady: "Installed", edGpu: "on GPU", edCpu: "on CPU",
     edOn: "Enable editor", edModes: "Where to fix", edDict: "Dictation (+1–2 s before pasting)", edRec: "Recording", edFiles: "Files", edYt: "YouTube (also adds punctuation)",
     edTerms: "Your terms", edTermsD: "Comma-separated — the editor will spell them exactly like this. Words from the dictionary are added automatically.",
@@ -605,6 +613,7 @@ const t = (k) => (I18N[LANG][k] ?? I18N.ru[k] ?? k);
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
 const IC = {
+  info: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="8" cy="8" r="6.3"/><path d="M8 7.3v3.6M8 5.1v.1"/></svg>',
   copy: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V3.5a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2"/></svg>',
   down: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5v8M4.5 7 8 10.5 11.5 7M3 13.5h10"/></svg>',
   trash: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5"/></svg>',
@@ -876,7 +885,7 @@ async function recPoll() {
   try { st = await api.rec_status(rec.np, rec.ns); } catch (e) { return; }
   const was = rec.state;
   rec.state = st.state; rec.elapsed = st.elapsed; rec.tid = st.tid;
-  if (st.peaks.length) { rec.peaks.push(...st.peaks); rec.np = st.npeaks; if (rec.peaks.length > 4000) rec.peaks.splice(0, rec.peaks.length - 4000); }
+  if (st.peaks.length) { rec.peaks.push(...st.peaks); rec.np = st.npeaks; rec.polledAt = performance.now(); if (rec.peaks.length > 4000) rec.peaks.splice(0, rec.peaks.length - 4000); }
   if (st.nsegs !== rec.ns || st.segs.length) {
     const changed = st.nsegs !== rec.ns || JSON.stringify(rec.segs[st.segfrom]) !== JSON.stringify(st.segs[0]);
     rec.segs.splice(st.segfrom, rec.segs.length - st.segfrom, ...st.segs); rec.ns = st.nsegs;
@@ -887,7 +896,7 @@ async function recPoll() {
   if (st.state === "idle") {
     stopPolling();
     if (was !== "idle") {  // recording finished: clear the timer and the waveform for the next one
-      Object.assign(rec, {elapsed: 0, peaks: [], np: 0, segs: [], ns: 0});
+      Object.assign(rec, {elapsed: 0, peaks: [], np: 0, segs: [], ns: 0, head: 0});
       paintRecNav();
       if (page === "record") { paintRecHead(); paintControls(); renderLive(); }
     }
@@ -907,37 +916,39 @@ function stateLabel() {
 function paintRecHead() {
   const tm = $("#recTimer"); if (!tm) return;
   tm.textContent = clock(rec.elapsed);
-  const s = $("#recState"); s.className = "rstate " + rec.state; s.innerHTML = `<i></i>${stateLabel()}`;
+  const idle = rec.state === "idle";
+  $("#recSrcWrap").style.display = idle ? "" : "none";
+  const s = $("#recState");
+  s.style.display = idle ? "none" : "";
+  s.className = "rstate " + rec.state; s.innerHTML = `<i></i>${stateLabel()}`;
+  $("#recBox").classList.toggle("live", !idle);
+}
+function ctl(id, cls, icon, label, title) {
+  return `<div class="ctl"><button class="rbtn ${cls}" id="${id}" title="${esc(title || label)}">${icon}</button><span>${esc(label)}</span></div>`;
 }
 function paintControls() {
   const c = $("#recControls"); if (!c) return;
   paintSrc();
-  const L = $("#recLabels");
   if (rec.state === "idle") {
-    c.innerHTML = `<button class="rbtn big" id="bStart" title="${t("recStart")}">${ICR.rec}</button>`;
-    L.innerHTML = `<span style="width:68px">${t("recStart")}</span>`;
+    c.innerHTML = ctl("bStart", "big", ICR.rec, t("recStart"));
     $("#bStart").onclick = async () => {
       const r = await api.rec_start();
       if (!r.ok) { toast(r.error === "model" ? t("recNoModel") : t("recMicErr") + (r.error ? ": " + r.error : "")); return; }
-      Object.assign(rec, {state: "rec", elapsed: 0, peaks: [], np: 0, segs: [], ns: 0, tid: r.tid});
+      Object.assign(rec, {state: "rec", elapsed: 0, peaks: [], np: 0, segs: [], ns: 0, tid: r.tid, head: 0, polledAt: performance.now()});
       renderLive(); paintRecHead(); paintControls(); startPolling(); loadTrs();
     };
   } else if (rec.state === "finishing") {
-    c.innerHTML = `<button class="rbtn big stop" disabled>${ICR.stop}</button>`;
-    L.innerHTML = `<span>${t("recFinishing")}</span>`;
+    c.innerHTML = `<div class="ctl"><button class="rbtn big stop" disabled>${ICR.stop}</button><span>${esc(t("recFinishing"))}</span></div>`;
   } else {
     const paused = rec.state === "paused";
-    c.innerHTML = `
-      <button class="rbtn small" id="bCancel" title="${t("recCancel")}">${ICR.trash}</button>
-      <button class="rbtn mid" id="bPause" title="${paused ? t("recResume") : t("recPause")}">${paused ? ICR.play : ICR.pause}</button>
-      <button class="rbtn big stop" id="bStop" title="${t("recStop")}">${ICR.stop}</button>
-      <span style="width:40px"></span>`;
-    L.innerHTML = `<span style="width:40px"></span><span style="width:52px">${paused ? t("recResume") : t("recPause")}</span><span style="width:68px">${t("recStop")}</span><span style="width:40px"></span>`;
-    $("#bPause").onclick = async () => { paused ? await api.rec_resume() : await api.rec_pause(); rec.state = paused ? "rec" : "paused"; paintRecHead(); paintControls(); paintRecNav(); };
+    c.innerHTML = ctl("bPause", "mid", paused ? ICR.play : ICR.pause, paused ? t("recResume") : t("recPause"))
+      + ctl("bStop", "big stop", ICR.stop, t("recStop"))
+      + ctl("bCancel", "mid ghost", ICR.trash, t("recCancel"));
+    $("#bPause").onclick = async () => { paused ? await api.rec_resume() : await api.rec_pause(); rec.state = paused ? "rec" : "paused"; rec.polledAt = performance.now(); paintRecHead(); paintControls(); paintRecNav(); };
     $("#bStop").onclick = async () => { await api.rec_stop(); rec.state = "finishing"; rec.finishing = true; paintRecHead(); paintControls(); };
     $("#bCancel").onclick = async () => {
       if (!confirmInline($("#bCancel"))) return;
-      await api.rec_cancel(); Object.assign(rec, {state: "idle", elapsed: 0, peaks: [], np: 0, segs: [], ns: 0, tid: null});
+      await api.rec_cancel(); Object.assign(rec, {state: "idle", elapsed: 0, peaks: [], np: 0, segs: [], ns: 0, tid: null, head: 0});
       paintRecHead(); paintControls(); paintRecNav(); renderLive(); loadTrs();
     };
   }
@@ -958,46 +969,59 @@ function renderLive(append) {
   box.innerHTML = rec.segs.map((s) => `<p><span class="ts">${ts(s.t)}</span>${esc(s.text)}</p>`).join("");
   if (append && atBottom) sc.scrollTop = sc.scrollHeight;
 }
+/* Waveform. Peaks arrive every ~100 ms in 50 ms bars; to keep it smooth the strip scrolls
+   continuously at 60 fps, a few bars behind the newest data, and new bars grow in softly. */
+const BAR_MS = 50, WAVE_LAG = 3;
 function drawWave() {
   const cv = $("#recWave");
   if (!cv) return;
   const dpr = (window.devicePixelRatio || 1) * ZOOM;
   const w = cv.clientWidth, h = cv.clientHeight;
+  if (!w) return;
   if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
   const g = cv.getContext("2d");
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, w, h);
+  const ph = $("#wavePh"); if (ph) ph.style.display = rec.np ? "none" : "";
+  if (!rec.np) return;
+  // continuous play head (in bars, absolute index)
+  let target = rec.np;
+  if (rec.state === "rec") target = Math.min(rec.np, rec.np - WAVE_LAG + (performance.now() - (rec.polledAt || 0)) / BAR_MS);
+  if (rec.head == null || target - rec.head > 40 || target < rec.head - 40) rec.head = target;
+  rec.head += (target - rec.head) * 0.25;  // ease toward the target, never jumps
+  const head = rec.head;
   const css = getComputedStyle(document.documentElement);
   const ink = rec.state === "rec" ? css.getPropertyValue("--text").trim() : css.getPropertyValue("--text-3").trim();
-  const faint = css.getPropertyValue("--divider").trim();
-  const mid = h / 2 - 8;
-  // center line
-  g.fillStyle = faint; g.fillRect(0, mid, w, 1);
-  // second ticks along the bottom (20 bars = 1 s)
-  const step = 4, bar = 2.5, perSec = 20;
-  const n = Math.floor(w / step);
-  const peaks = rec.peaks.slice(-n);
-  const off = n - peaks.length;
-  g.fillStyle = faint;
-  const firstIdx = rec.np - peaks.length;
-  for (let i = 0; i < peaks.length; i++) {
-    const gi = firstIdx + i;
+  const faint = css.getPropertyValue("--text-3").trim();
+  const step = 4, bar = 2.4, perSec = 1000 / BAR_MS;
+  const mid = (h - 16) / 2;
+  const first = rec.np - rec.peaks.length;        // absolute index of rec.peaks[0]
+  const n = Math.ceil(w / step) + 2;
+  const right = w - 6;                             // where the head sits
+  const pk = (gi) => { const i = gi - first; return i >= 0 && i < rec.peaks.length ? rec.peaks[i] : 0; };
+  g.font = "10px Segoe UI, sans-serif";
+  for (let k = 0; k < n; k++) {
+    const gi = Math.floor(head) - k;
+    if (gi < Math.max(first, 0)) break;
+    const x = right - (head - gi) * step;
+    if (x < -step) break;
+    // time ticks every second, label every 5 s
     if (gi % perSec === 0) {
-      const x = (off + i) * step;
       const major = gi % (perSec * 5) === 0;
-      g.fillRect(x, h - (major ? 14 : 9), 1, major ? 14 : 9);
-      if (major && x > 4) { g.font = "10px Segoe UI, sans-serif"; g.fillStyle = css.getPropertyValue("--text-3").trim(); g.fillText(clock(gi / perSec).replace(/^00:/, ""), x + 4, h - 4); g.fillStyle = faint; }
+      g.globalAlpha = 0.35; g.fillStyle = faint;
+      g.fillRect(x, h - (major ? 10 : 6), 1, major ? 10 : 6);
+      if (major && gi > 0) { g.globalAlpha = 0.8; g.fillText(clock(gi / perSec).replace(/^00:/, ""), x + 4, h - 2); }
     }
+    // smoothed peak, shaped so quiet speech is still visible
+    const v = Math.min(1, Math.pow(pk(gi - 1) * 0.25 + pk(gi) * 0.5 + pk(gi + 1) * 0.25, 0.6) * 1.5);
+    const grow = Math.min(1, (head - gi) / 4);   // new bars rise in
+    const ease = 1 - Math.pow(1 - grow, 3);
+    const bh = Math.max(2, v * (mid - 6) * 2 * ease);
+    g.globalAlpha = Math.min(1, x / 60) * (0.35 + 0.65 * ease);  // fade at the left edge
+    g.fillStyle = ink;
+    g.beginPath(); g.roundRect(x, mid - bh / 2 + 4, bar, bh, 1.2); g.fill();
   }
-  g.fillStyle = ink;
-  for (let i = 0; i < peaks.length; i++) {
-    const v = Math.min(1, Math.pow(peaks[i], 0.6) * 1.4);
-    const bh = Math.max(2, v * (mid - 10) * 2);
-    const x = (off + i) * step;
-    const y = mid - bh / 2;
-    g.beginPath(); g.roundRect(x, y, bar, bh, 1.25); g.fill();
-  }
-  const ph = $("#wavePh"); if (ph) ph.style.display = rec.peaks.length ? "none" : "";
+  g.globalAlpha = 1;
 }
 function waveLoop() { if (page === "record") drawWave(); requestAnimationFrame(waveLoop); }
 requestAnimationFrame(waveLoop);
@@ -1009,14 +1033,18 @@ async function pageRecord() {
       <div class="picon">🎙️</div>
       <h1>${t("navRecord")}</h1>
       <div class="desc">${t("recDesc")}</div>
-      <div class="recbox">
-        <div class="rechead"><div class="timer" id="recTimer">00:00:00</div><div class="rstate" id="recState"></div></div>
+      <div class="recbox" id="recBox">
+        <div class="rechead">
+          <div class="timer" id="recTimer">00:00:00</div>
+          <div class="srcpick" id="recSrcWrap"><span>${t("recSrc")}</span>${ddHtml("recSrcDd", recSources(), settings.rec_source || "mic")}</div>
+          <div class="rstate" id="recState"></div>
+        </div>
         <div class="wave"><canvas id="recWave"></canvas><div class="ph" id="wavePh">${t("recWaveIdle")}</div></div>
         <div class="controls" id="recControls"></div>
-        <div class="rlabels" id="recLabels"></div>
-        <div class="recsrc">${t("recSrc")} ${ddHtml("recSrcDd", recSources(), settings.rec_source || "mic")}</div>
-        <div class="rnote" id="recSrcNote"></div>
-        <div class="rnote">${t("recNote")}</div>
+      </div>
+      <div class="rnotes">
+        <div class="rnote" id="recSrcNote">${IC.info}<span></span></div>
+        <div class="rnote">${IC.info}<span>${t("recNote")}</span></div>
       </div>
       <h3 class="livehead">${t("recLive")} <small>· ${t("recLag")}</small></h3>
       <div class="doc" id="recLive"></div>
@@ -1031,7 +1059,7 @@ function recSources() {
 function paintSrc() {
   const dd = $("#recSrcDd"); if (!dd) return;
   if (rec.state === "idle") dd.removeAttribute("disabled"); else dd.setAttribute("disabled", "");
-  $("#recSrcNote").textContent = (settings.rec_source === "both") ? t("srcBothD") : "";
+  $("#recSrcNote span").textContent = settings.rec_source === "both" ? t("srcBothD") : "";
   $("#recSrcNote").style.display = settings.rec_source === "both" ? "" : "none";
 }
 
