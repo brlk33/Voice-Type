@@ -1,5 +1,6 @@
 """VoiceType: window + tray + global dictation hotkey."""
 import json
+import re
 import os
 import queue
 import socket
@@ -1032,14 +1033,26 @@ class Api:
     def get_jobs(self):
         return sorted(self._jobs.values(), key=lambda j: j["id"])
 
-    # ------------- YouTube (subtitles, no download)
+    # ------------- links: YouTube subtitles, or any site's audio recognized by the model
     def add_youtube(self, url, pref="orig"):
+        return self.add_link(url, "subs", pref)
+
+    def link_kind(self, url):
+        """For the UI switch: is it YouTube (subtitles possible) or another site."""
         import youtube
         url = (url or "").strip()
-        if not youtube.video_id(url):
+        return {"youtube": youtube.is_youtube(url), "url": bool(re.match(r"https?://\S+\.\S+", url))}
+
+    def add_link(self, url, mode="subs", pref="orig"):
+        import youtube
+        url = (url or "").strip()
+        yt = youtube.is_youtube(url)
+        if not yt and not re.match(r"https?://\S+\.\S+", url):
             return {"ok": False, "error": "badurl"}
+        if mode == "subs" and not yt:
+            mode = "asr"  # subtitles exist only on YouTube
         job = {"id": self._next, "url": url, "name": url, "status": "wait", "error": None,
-               "code": None, "tid": None, "pref": pref}
+               "code": None, "tid": None, "pref": pref, "mode": mode, "progress": 0}
         self._next += 1
         self._yt_jobs[job["id"]] = job
         self._push_yt(job)
@@ -1059,34 +1072,96 @@ class Api:
             job["status"] = "run"
             self._push_yt(job)
             try:
-                r = youtube.fetch(job["url"], job["pref"])
-                eng = self._engine
-                mode = eng.cfg.get("long_paragraphs", "long")
-                paras = youtube.paragraphs(r["cues"], mode)
-                if eng.cfg.get("clean", True):
-                    for p in paras:
-                        p["text"] = core.clean_text(p["text"], eng.cfg.get("clean_fillers", False))
-                if eng.editor_on("youtube"):
-                    job["status"] = "edit"
-                    for i, p in enumerate(paras):
-                        job["progress"] = i * 100 // max(1, len(paras))
-                        self._push_yt(job)
-                        p["text"] = editor.edit(p["text"], eng.editor_terms())
-                tr = {"id": uuid.uuid4().hex[:12], "title": r["title"], "source": r["url"], "kind": "youtube",
-                      "channel": r["channel"], "sub_lang": r["lang"], "sub_kind": r["kind"],
-                      "created": datetime.now().isoformat(timespec="seconds"),
-                      "duration": r["duration"], "model": "", "segments": [p for p in paras if p["text"]]}
-                tr_save(tr)
-                job.update(status="done", tid=tr["id"], name=r["title"])
-                log.info("YouTube: %s (%s, %s), %d абзацев", r["title"], r["lang"], r["kind"], len(paras))
+                if job.get("mode") == "asr":
+                    self._link_asr(job)
+                else:
+                    self._link_subs(job)
                 self._js("vt.onTranscripts()")
             except youtube.YTError as e:
-                log.info("YouTube ошибка %s: %s", e.code, e.detail)
+                log.info("Ссылка: ошибка %s: %s", e.code, e.detail)
                 job.update(status="err", code=e.code, error=e.detail[:300])
             except Exception as e:
-                log.exception("YouTube")
+                log.exception("Ссылка")
                 job.update(status="err", code="other", error=str(e)[:300])
             self._push_yt(job)
+
+    def _link_subs(self, job):
+        import youtube
+        r = youtube.fetch(job["url"], job["pref"])
+        eng = self._engine
+        paras = youtube.paragraphs(r["cues"], eng.cfg.get("long_paragraphs", "long"))
+        if eng.cfg.get("clean", True):
+            for p in paras:
+                p["text"] = core.clean_text(p["text"], eng.cfg.get("clean_fillers", False))
+        self._edit_segments(paras, job, self._push_yt)
+        tr = {"id": uuid.uuid4().hex[:12], "title": r["title"], "source": r["url"], "kind": "youtube",
+              "channel": r["channel"], "sub_lang": r["lang"], "sub_kind": r["kind"],
+              "created": datetime.now().isoformat(timespec="seconds"),
+              "duration": r["duration"], "model": "", "segments": [p for p in paras if p["text"]]}
+        tr_save(tr)
+        job.update(status="done", tid=tr["id"], name=r["title"])
+        log.info("YouTube: %s (%s, %s), %d абзацев", r["title"], r["lang"], r["kind"], len(paras))
+
+    def _link_asr(self, job):
+        """Stream the audio of any video link into memory and recognize it (nothing saved to disk)."""
+        import youtube
+        eng = self._engine
+        job.update(status="fetch", progress=0, sec=0)
+        self._push_yt(job)
+        last = [0.0]
+
+        def got(frac, sec):
+            if time.time() - last[0] > 0.4:
+                last[0] = time.time()
+                job.update(progress=int(frac * 100) if frac is not None else None, sec=int(sec))
+                self._push_yt(job)
+        audio, meta = youtube.stream_audio(job["url"], got)
+        job.update(name=meta["title"], status="run", progress=0)
+        self._push_yt(job)
+        while eng.rec is None:
+            time.sleep(0.5)
+        segs = self._recognize(audio, job, self._push_yt)
+        self._edit_segments(segs, job, self._push_yt)
+        tr = {"id": uuid.uuid4().hex[:12], "title": meta["title"], "source": meta["url"], "kind": "link",
+              "channel": meta["channel"], "site": meta["site"],
+              "created": datetime.now().isoformat(timespec="seconds"),
+              "duration": meta["duration"], "model": eng.rec.model_name, "segments": segs}
+        tr_save(tr)
+        job.update(status="done", progress=100, tid=tr["id"])
+        log.info("Ссылка (нейросеть): %s, %s, %.0f с звука", meta["site"], meta["title"], meta["duration"])
+
+    def _recognize(self, audio, job, push):
+        """Shared by files and links: recognize, dictionary, cleanup, paragraphs."""
+        eng = self._engine
+        lastp = [-1]
+
+        def prog(k, n):
+            pct = k * 100 // n
+            if pct != lastp[0]:
+                lastp[0] = pct
+                job["progress"] = pct
+                push(job)
+        segs = eng.rec.transcribe_segments(audio, progress=prog)
+        for s in segs:
+            s["text"] = eng.dic.apply(s["text"])
+            if eng.cfg.get("clean", True):
+                s["text"] = core.clean_text(s["text"], eng.cfg.get("clean_fillers", False))
+        segs = [s for s in segs if s["text"]]
+        segs = core.merge_segments(segs, eng.cfg.get("long_paragraphs", "long"))
+        if eng.cfg.get("clean", True):
+            for s in segs:
+                s["text"] = core.clean_text(s["text"], eng.cfg.get("clean_fillers", False))
+        return segs
+
+    def _edit_segments(self, segs, job, push, mode="youtube"):
+        eng = self._engine
+        if not eng.editor_on(mode):
+            return
+        job["status"] = "edit"
+        for i, sg in enumerate(segs):
+            job["progress"] = i * 100 // max(1, len(segs))
+            push(job)
+            sg["text"] = editor.edit(sg["text"], eng.editor_terms())
 
     def open_url(self, url):
         if isinstance(url, str) and url.startswith(("https://", "http://")):
@@ -1100,34 +1175,12 @@ class Api:
             job["status"] = "run"
             self._push_job(job)
             try:
-                last = [-1]
-
-                def prog(k, n):
-                    pct = k * 100 // n
-                    if pct != last[0]:
-                        last[0] = pct
-                        job["progress"] = pct
-                        self._push_job(job)
                 eng = self._engine
                 audio = core.decode_file(job["path"])
                 job["progress"] = 0
                 self._push_job(job)
-                segs = eng.rec.transcribe_segments(audio, progress=prog)
-                for s in segs:
-                    s["text"] = eng.dic.apply(s["text"])
-                    if eng.cfg.get("clean", True):
-                        s["text"] = core.clean_text(s["text"], eng.cfg.get("clean_fillers", False))
-                segs = [s for s in segs if s["text"]]
-                segs = core.merge_segments(segs, eng.cfg.get("long_paragraphs", "long"))
-                if eng.cfg.get("clean", True):
-                    for s in segs:
-                        s["text"] = core.clean_text(s["text"], eng.cfg.get("clean_fillers", False))
-                if eng.editor_on("files"):
-                    job["status"] = "edit"
-                    for i, sg in enumerate(segs):
-                        job["progress"] = i * 100 // max(1, len(segs))
-                        self._push_job(job)
-                        sg["text"] = editor.edit(sg["text"], eng.editor_terms())
+                segs = self._recognize(audio, job, self._push_job)
+                self._edit_segments(segs, job, self._push_job, "files")
                 tr = {"id": uuid.uuid4().hex[:12],
                       "title": os.path.splitext(job["name"])[0],
                       "source": job["path"],

@@ -1,4 +1,9 @@
-"""Text of a YouTube video from its subtitles (no video or audio download)."""
+"""Text from a link.
+
+YouTube: from the video's subtitles (no download at all).
+Any site yt-dlp knows (Instagram, TikTok, VK, Rutube, YouTube too...): the audio track is
+streamed through ffmpeg straight into memory and recognized; no video or audio file is saved.
+"""
 import json
 import logging
 import re
@@ -200,3 +205,90 @@ def fetch(url: str, pref: str = "orig") -> dict:
         if e.code == "nosubs":
             raise e
     raise errors[-1] if errors else YTError("network", "")
+
+
+# ---------------------------------------------------------------- any site: stream the audio
+def is_youtube(url: str) -> bool:
+    return bool(video_id(url)) and "youtu" in url.lower() or bool(re.fullmatch(r"[\w-]{11}", url.strip()))
+
+
+# audio only when the site has it; plain http(s) or HLS that ffmpeg can read directly
+# (not DASH fragments, which only yt-dlp itself knows how to stitch)
+_FMT = ("bestaudio[protocol^=http][protocol!*=dash]/bestaudio[protocol^=m3u8]/"
+        "best[protocol^=http][protocol!*=dash]/best[protocol^=m3u8]/bestaudio/best")
+
+
+def _yt_error(e):
+    msg = str(e)
+    low = msg.lower()
+    if "unsupported url" in low:
+        return YTError("unsupported", msg[-200:])
+    if any(k in low for k in ("login", "log in", "sign in", "cookies", "private", "rate-limit", "rate limit")):
+        return YTError("login", msg[-200:])
+    return YTError("network", msg[-300:])
+
+
+def stream_audio(url: str, progress=None, stop=None):
+    """-> (float32 mono 16 kHz audio, meta). progress(fraction or None, seconds_read)."""
+    import subprocess
+    import numpy as np
+    import yt_dlp
+    import core
+    url = url.strip()
+    opts = {"quiet": True, "no_warnings": True, "noplaylist": True, "socket_timeout": 20, "format": _FMT}
+    try:
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+    except yt_dlp.utils.DownloadError as e:
+        raise _yt_error(e)
+    if info.get("_type") == "playlist":
+        entries = [x for x in (info.get("entries") or []) if x]
+        if not entries:
+            raise YTError("unsupported", url)
+        info = entries[0]
+    fmt = info
+    if info.get("requested_formats"):  # video+audio pair: take the audio one
+        fmt = next((f for f in info["requested_formats"] if f.get("acodec") not in (None, "none")), info["requested_formats"][-1])
+    media = fmt.get("url")
+    if not media:
+        raise YTError("unsupported", url)
+    headers = "".join(f"{k}: {v}\r\n" for k, v in (fmt.get("http_headers") or info.get("http_headers") or {}).items())
+    cmd = [core.ffmpeg_exe(), "-nostdin", "-hide_banner", "-loglevel", "error"]
+    if media.startswith("http"):
+        cmd += ["-rw_timeout", "30000000"]
+    if headers:
+        cmd += ["-headers", headers]
+    if fmt.get("cookies"):
+        cmd += ["-cookies", fmt["cookies"]]
+    cmd += ["-i", media, "-vn", "-f", "s16le", "-ac", "1", "-acodec", "pcm_s16le", "-ar", str(core.SR), "-"]
+    dur = float(info.get("duration") or 0)
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=core.NO_WINDOW)
+    chunks, got = [], 0
+    try:
+        while True:
+            if stop is not None and stop():
+                p.kill()
+                raise YTError("cancel", "")
+            b = p.stdout.read(core.SR * 2)  # ~1 s of audio
+            if not b:
+                break
+            chunks.append(b)
+            got += len(b)
+            if progress:
+                sec = got / (core.SR * 2)
+                progress(min(0.99, sec / dur) if dur else None, sec)
+        err = p.stderr.read().decode("utf-8", "replace")
+        p.wait(10)
+    finally:
+        if p.poll() is None:
+            p.kill()
+    if p.returncode != 0 and not got:
+        raise YTError("network", (err or "ffmpeg")[-300:])
+    audio = np.frombuffer(b"".join(chunks), dtype=np.int16).astype(np.float32) / 32768.0
+    if not len(audio):
+        raise YTError("noaudio", info.get("title") or url)
+    meta = {"title": info.get("title") or info.get("id") or url,
+            "channel": info.get("channel") or info.get("uploader") or info.get("creator") or "",
+            "duration": len(audio) / core.SR, "url": info.get("webpage_url") or url,
+            "site": info.get("extractor_key") or info.get("extractor") or ""}
+    return audio, meta

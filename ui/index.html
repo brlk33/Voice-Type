@@ -337,6 +337,15 @@ h3 { font-size: 13px; font-weight: 600; margin: 40px 0 12px 4px; color: var(--te
 }
 .ytin:focus { box-shadow: var(--blue) 0 0 0 1.5px inset; }
 .ytin::placeholder { color: var(--text-3); }
+.segm { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 12px; padding: 4px; border-radius: 12px; background: var(--bg); box-shadow: var(--divider) 0 0 0 1px inset; }
+.segm button { border: 0; border-radius: 9px; padding: 8px 12px; background: transparent; color: var(--text-2); font: inherit; cursor: pointer; text-align: left; display: flex; flex-direction: column; gap: 1px; transition: background .12s, color .12s, box-shadow .12s; }
+.segm button b { font-weight: 500; font-size: 13.5px; }
+.segm button small { font-size: 12px; color: var(--text-3); }
+.segm button:hover { color: var(--text); }
+.segm button.on { background: var(--card); color: var(--text); box-shadow: var(--border) 0 0 0 1px inset, 0 1px 2px rgba(0,0,0,.06); }
+.lknote { display: flex; gap: 8px; align-items: flex-start; margin-top: 12px; color: var(--text-3); font-size: 12.5px; line-height: 1.55; }
+.lknote svg { flex: none; margin-top: 3px; }
+.btn.sm { height: 28px; padding: 0 10px; font-size: 12.5px; margin-top: 6px; }
 .ytopts { display: flex; align-items: center; gap: 10px; margin-top: 12px; color: var(--text-2); font-size: 13px; }
 .ytopts .sp { flex: 1; }
 .ytopts > span:first-child { white-space: nowrap; }
@@ -441,7 +450,7 @@ kbd { font: inherit; font-size: 11.5px; padding: 1px 6px; border-radius: 6px; ba
     </div>
     <div class="nav">
       <div class="item" data-page="record"><span class="em">🎙️</span><span class="lbl" data-i="navRecord"></span><span class="live" id="navLive" style="display:none"><i></i><b id="navTime"></b></span></div>
-      <div class="item" data-page="youtube"><span class="em">📺</span><span class="lbl" data-i="navYt"></span></div>
+      <div class="item" data-page="youtube"><span class="em">🔗</span><span class="lbl" data-i="navYt"></span></div>
       <div class="item" data-page="files"><span class="em">📥</span><span class="lbl" data-i="navFiles"></span></div>
       <div class="navsep"></div>
       <div class="item" data-page="history"><span class="em">🕘</span><span class="lbl" data-i="navHistory"></span></div>
@@ -541,12 +550,18 @@ const I18N = {
     srcMic: "Запись с микрофона",
     lpT: "Абзацы в записи и файлах", lpD: "Как делить длинный текст. Короткие паузы внутри фразы склеиваются в одно предложение.",
     lpLong: "Редко — после пауз от 2,5 с", lpChunk: "Каждые 15–20 секунд", lpNone: "Без абзацев",
-    navYt: "YouTube", ytDesc: "Вставьте ссылку на видео — текст возьмётся из субтитров YouTube. Видео и звук не скачиваются, это занимает пару секунд.",
-    ytPh: "https://www.youtube.com/watch?v=…", ytGo: "Получить текст", ytLang: "Язык субтитров",
+    navYt: "По ссылке", ytDesc: "Вставьте ссылку на видео — YouTube, Instagram, TikTok, VK, Rutube и сотни других сайтов. Видео на компьютер не скачивается.",
+    ytPh: "Ссылка на видео", ytGo: "Получить текст", ytLang: "Язык субтитров",
+    lkSubs: "Субтитры YouTube", lkSubsD: "за пару секунд", lkAsr: "Нейросеть", lkAsrD: "дольше, зато с пунктуацией",
+    lkAsrNote: "Нейросеть распознает звук ролика. Видео не скачивается: звук читается потоком прямо в память и после распознавания исчезает.",
+    lkEmpty: "Для YouTube можно взять готовые субтитры или распознать нейросетью, для остальных сайтов — нейросеть.",
+    lkFetch: "Получаю звук", lkRec: "Распознаю", lkTryAsr: "Распознать нейросетью", lkSrc: "Нейросеть GigaAM",
+    err_login: "Сайт не отдаёт это видео без входа в аккаунт (часто так у Instagram) или ограничил частые запросы.",
+    err_unsupported: "Этот сайт не поддерживается или по ссылке нет видео.", err_noaudio: "В видео нет звука.", err_cancel: "Отменено",
     ytOrig: "Как в видео", ytRu: "Русский", ytEn: "English",
     ytNote: "В автоматических субтитрах YouTube обычно нет знаков препинания.",
-    ytBad: "Это не похоже на ссылку на YouTube-видео.", ytWait: "В очереди", ytRun: "Получаю субтитры", ytDone: "Готово",
-    err_nosubs: "У этого видео нет субтитров", err_network: "Не удалось получить данные с YouTube. Проверьте интернет и VPN.",
+    ytBad: "Это не похоже на ссылку на видео.", ytWait: "В очереди", ytRun: "Получаю субтитры", ytDone: "Готово",
+    err_nosubs: "У этого видео нет субтитров", err_network: "Не удалось получить данные с сайта. Проверьте интернет и VPN.",
     err_badurl: "Неверная ссылка", err_format: "Неподдерживаемый формат субтитров", err_other: "Ошибка",
     pChannel: "Канал", pLink: "Ссылка", pSubs: "Субтитры", subManual: "от автора", subAuto: "автоматические", subTr: "машинный перевод",
     zoom: "Масштаб", zoomT: "Масштаб интерфейса", zoomD: "Также Ctrl + «+» / Ctrl + «−», Ctrl + колесо мыши. Ctrl + 0 — сбросить.",
@@ -564,7 +579,7 @@ const I18N = {
     gpuEnable: "Включить", gpuDisable: "Отключить", gpuSure: "Точно?",
     gpuDisableD: "Отключение удалит ~3,7 ГБ и вернёт лёгкую версию.", gpuBusy: "Сначала завершите запись",
     edInstall: "Установить · {gb} ГБ", edInstalling: "Скачиваю", edNotInstalled: "Не установлен", edReady: "Установлен", edGpu: "на видеокарте", edCpu: "на процессоре",
-    edOn: "Включить редактор", edModes: "Где исправлять", edDict: "Диктовка (+1–2 с перед вставкой)", edRec: "Запись", edFiles: "Файлы", edYt: "YouTube (заодно расставит пунктуацию)",
+    edOn: "Включить редактор", edModes: "Где исправлять", edDict: "Диктовка (+1–2 с перед вставкой)", edRec: "Запись", edFiles: "Файлы", edYt: "По ссылке (в субтитрах YouTube заодно расставит пунктуацию)",
     edTerms: "Ваши термины", edTermsD: "Через запятую — редактор будет писать их именно так. Слова из словаря замен добавляются сами.",
     edTest: "Проверить", edTestPh: "Вставьте сюда фразу, например: я открыл автор эффектс и нажал альт таб", edBefore: "Было", edAfter: "Стало",
     edRemove: "Удалить редактор с компьютера", edRemoveBtn: "Удалить", edRemoveQ: "Точно удалить?",
@@ -634,12 +649,18 @@ const I18N = {
     srcMic: "Microphone recording",
     lpT: "Paragraphs in recordings and files", lpD: "How long text is split. Short pauses inside a phrase are glued into one sentence.",
     lpLong: "Rarely — after pauses of 2.5 s+", lpChunk: "Every 15–20 seconds", lpNone: "No paragraphs",
-    navYt: "YouTube", ytDesc: "Paste a video link — the text comes from YouTube subtitles. Nothing is downloaded, it takes a couple of seconds.",
-    ytPh: "https://www.youtube.com/watch?v=…", ytGo: "Get text", ytLang: "Subtitle language",
+    navYt: "From a link", ytDesc: "Paste a video link — YouTube, Instagram, TikTok, VK, Rutube and hundreds of other sites. The video is not downloaded to your computer.",
+    ytPh: "Video link", ytGo: "Get text", ytLang: "Subtitle language",
+    lkSubs: "YouTube subtitles", lkSubsD: "in a couple of seconds", lkAsr: "Neural network", lkAsrD: "slower, with punctuation",
+    lkAsrNote: "The neural network recognizes the video's sound. The video is not downloaded: the sound is streamed into memory and is gone after recognition.",
+    lkEmpty: "For YouTube you can take its subtitles or use the neural network; other sites use the neural network.",
+    lkFetch: "Getting audio", lkRec: "Recognizing", lkTryAsr: "Recognize with the neural network", lkSrc: "GigaAM neural network",
+    err_login: "The site won't give this video without logging in (common on Instagram) or limited frequent requests.",
+    err_unsupported: "This site isn't supported or there's no video at the link.", err_noaudio: "The video has no sound.", err_cancel: "Cancelled",
     ytOrig: "Video's language", ytRu: "Русский", ytEn: "English",
     ytNote: "YouTube's automatic subtitles usually have no punctuation.",
-    ytBad: "This doesn't look like a YouTube video link.", ytWait: "Queued", ytRun: "Getting subtitles", ytDone: "Done",
-    err_nosubs: "This video has no subtitles", err_network: "Couldn't reach YouTube. Check your internet and VPN.",
+    ytBad: "This doesn't look like a video link.", ytWait: "Queued", ytRun: "Getting subtitles", ytDone: "Done",
+    err_nosubs: "This video has no subtitles", err_network: "Couldn't get data from the site. Check your internet and VPN.",
     err_badurl: "Invalid link", err_format: "Unsupported subtitle format", err_other: "Error",
     pChannel: "Channel", pLink: "Link", pSubs: "Subtitles", subManual: "by the author", subAuto: "automatic", subTr: "machine translation",
     zoom: "Zoom", zoomT: "Interface size", zoomD: "Also Ctrl + “+” / Ctrl + “−” or Ctrl + mouse wheel. Ctrl + 0 resets.",
@@ -657,7 +678,7 @@ const I18N = {
     gpuEnable: "Turn on", gpuDisable: "Turn off", gpuSure: "Sure?",
     gpuDisableD: "Turning off removes ~3.7 GB and goes back to the light version.", gpuBusy: "Finish the recording first",
     edInstall: "Install · {gb} GB", edInstalling: "Downloading", edNotInstalled: "Not installed", edReady: "Installed", edGpu: "on GPU", edCpu: "on CPU",
-    edOn: "Enable editor", edModes: "Where to fix", edDict: "Dictation (+1–2 s before pasting)", edRec: "Recording", edFiles: "Files", edYt: "YouTube (also adds punctuation)",
+    edOn: "Enable editor", edModes: "Where to fix", edDict: "Dictation (+1–2 s before pasting)", edRec: "Recording", edFiles: "Files", edYt: "From a link (adds punctuation to YouTube subtitles)",
     edTerms: "Your terms", edTermsD: "Comma-separated — the editor will spell them exactly like this. Words from the dictionary are added automatically.",
     edTest: "Test", edTestPh: "Paste a phrase here, e.g.: я открыл автор эффектс и нажал альт таб", edBefore: "Before", edAfter: "After",
     edRemove: "Remove the editor from this computer", edRemoveBtn: "Remove", edRemoveQ: "Sure?",
@@ -732,7 +753,7 @@ window.vt = {
   onYtJob(j) {
     const prev = ytJobs.get(j.id); ytJobs.set(j.id, j);
     if (page === "youtube") renderYtJobs();
-    if (j.status === "done" && prev && prev.status !== "done" && page === "youtube" && ![...ytJobs.values()].some((x) => x.status === "wait" || x.status === "run")) setTimeout(() => go("tr:" + j.tid), 400);
+    if (j.status === "done" && prev && prev.status !== "done" && page === "youtube" && ![...ytJobs.values()].some((x) => ["wait", "fetch", "run", "edit"].includes(x.status))) setTimeout(() => go("tr:" + j.tid), 400);
   },
   async onRecDone(tid) {
     rec.finishing = false;
@@ -798,7 +819,7 @@ async function loadTrs() { trs = await api.list_transcripts(); renderTrList(); }
 function renderTrList() {
   const box = $("#trlist");
   if (!trs.length) { box.innerHTML = `<div class="trempty">${t("noTranscripts")}</div>`; return; }
-  box.innerHTML = trs.map((x) => `<div class="item" data-id="${x.id}" title="${esc(x.title)}"><span class="em">${x.recording ? "🔴" : x.kind === "youtube" ? "📺" : x.kind === "mic" ? "🎙️" : x.kind === "system" || x.kind === "both" ? "🔊" : "📄"}</span><span class="lbl">${esc(x.title || t("untitled"))}</span><span class="del" title="${t("del")}">${IC.x}</span></div>`).join("");
+  box.innerHTML = trs.map((x) => `<div class="item" data-id="${x.id}" title="${esc(x.title)}"><span class="em">${x.recording ? "🔴" : x.kind === "youtube" ? "📺" : x.kind === "link" ? "🔗" : x.kind === "mic" ? "🎙️" : x.kind === "system" || x.kind === "both" ? "🔊" : "📄"}</span><span class="lbl">${esc(x.title || t("untitled"))}</span><span class="del" title="${t("del")}">${IC.x}</span></div>`).join("");
   box.querySelectorAll(".item").forEach((el) => {
     el.onclick = () => go(trs.find((x) => x.id === el.dataset.id)?.recording ? "record" : "tr:" + el.dataset.id);
     el.querySelector(".del").onclick = (e) => { e.stopPropagation(); delTr(el.dataset.id); };
@@ -896,15 +917,16 @@ async function pageTranscript(id) {
     : `<p class="none">${t("noSpeech")}</p>`;
   $("#view").innerHTML = `
     <div class="page">
-      <div class="picon">${tr.kind === "youtube" ? "📺" : tr.kind === "mic" ? "🎙️" : "📄"}</div>
+      <div class="picon">${tr.kind === "youtube" ? "📺" : tr.kind === "link" ? "🔗" : tr.kind === "mic" ? "🎙️" : "📄"}</div>
       <h1 contenteditable="true" spellcheck="false" id="trTitle" data-ph="${t("untitled")}">${esc(tr.title)}</h1>
       <div class="props">
         <div class="prop"><div class="pk">${IC.clock}${t("pDuration")}</div><div class="pv"><span>${dur(tr.duration)}</span></div></div>
         <div class="prop"><div class="pk">${IC.cal}${t("pCreated")}</div><div class="pv"><span>${fmtDate(tr.created)}</span></div></div>
         <div class="prop"><div class="pk">${IC.hash}${t("pWords")}</div><div class="pv"><span>${words}</span></div></div>
-        ${tr.kind === "youtube" ? `
+        ${tr.kind === "youtube" || tr.kind === "link" ? `
         <div class="prop"><div class="pk">${IC.file}${t("pChannel")}</div><div class="pv"><span>${esc(tr.channel || "—")}</span></div></div>
-        <div class="prop"><div class="pk">${IC.hash}${t("pSubs")}</div><div class="pv"><span>${esc({manual: t("subManual"), auto: t("subAuto"), translated: t("subTr")}[tr.sub_kind] || "")} · ${esc(tr.sub_lang || "")}</span></div></div>
+        ${tr.kind === "youtube" ? `<div class="prop"><div class="pk">${IC.hash}${t("pSubs")}</div><div class="pv"><span>${esc({manual: t("subManual"), auto: t("subAuto"), translated: t("subTr")}[tr.sub_kind] || "")} · ${esc(tr.sub_lang || "")}</span></div></div>`
+          : `<div class="prop"><div class="pk">${IC.hash}${t("pSource")}</div><div class="pv"><span>${esc(t("lkSrc"))}${tr.site ? " · " + esc(tr.site) : ""}</span></div></div>`}
         <div class="prop"><div class="pk">${IC.cpu}${t("pLink")}</div><div class="pv link" id="ytlink" title="${esc(tr.source)}"><span>${esc(tr.source)}</span></div></div>` : `
         <div class="prop"><div class="pk">${IC.file}${t("pSource")}</div>${tr.source
           ? `<div class="pv link" id="src" title="${esc(tr.source)}"><span>${esc(tr.source)}</span></div>`
@@ -1127,12 +1149,14 @@ function paintSrc() {
 /* ---------- page: youtube ---------- */
 const ytJobs = new Map();
 let ytPref = "orig";
+let ytMode = "subs";
+const isYt = (u) => /(^|\.|\/\/)(youtube\.com|youtu\.be)\//i.test(u) || /^[\w-]{11}$/.test(u.trim());
 function pageYoutube() {
-  crumbs([{em: "📺", text: t("navYt")}]); actions("");
+  crumbs([{em: "🔗", text: t("navYt")}]); actions("");
   const L = [{v: "orig", label: t("ytOrig")}, {v: "ru", label: t("ytRu")}, {v: "en", label: t("ytEn")}];
   $("#view").innerHTML = `
     <div class="page">
-      <div class="picon">📺</div>
+      <div class="picon">🔗</div>
       <h1>${t("navYt")}</h1>
       <div class="desc">${t("ytDesc")}</div>
       <div class="ytbox">
@@ -1140,20 +1164,36 @@ function pageYoutube() {
           <input class="ytin" id="ytUrl" placeholder="${t("ytPh")}" spellcheck="false" autocomplete="off">
           <button class="btn primary lg" id="ytGo">${t("ytGo")}</button>
         </div>
-        <div class="ytopts"><span>${t("ytLang")}</span>${ddHtml("ytLangDd", L, ytPref)}<span class="sp"></span><span>${t("ytNote")}</span></div>
+        <div id="lkOpts"></div>
       </div>
       <div id="ytJobsBox"></div>
     </div>`;
-  ddBind("ytLangDd", L, (v) => { ytPref = v; });
+  const paintOpts = () => {
+    const u = $("#ytUrl").value.trim().split(/\s+/)[0] || "";
+    const box = $("#lkOpts");
+    if (!u) { box.innerHTML = `<div class="lknote">${IC.info}<span>${t("lkEmpty")}</span></div>`; return; }
+    if (!isYt(u)) { box.innerHTML = `<div class="lknote">${IC.info}<span>${t("lkAsrNote")}</span></div>`; return; }
+    box.innerHTML = `<div class="segm" id="lkSeg">
+        <button data-m="subs" class="${ytMode === "subs" ? "on" : ""}"><b>${t("lkSubs")}</b><small>${t("lkSubsD")}</small></button>
+        <button data-m="asr" class="${ytMode === "asr" ? "on" : ""}"><b>${t("lkAsr")}</b><small>${t("lkAsrD")}</small></button>
+      </div>
+      ${ytMode === "subs"
+        ? `<div class="ytopts"><span>${t("ytLang")}</span>${ddHtml("ytLangDd", L, ytPref)}<span class="sp"></span><span>${t("ytNote")}</span></div>`
+        : `<div class="lknote">${IC.info}<span>${t("lkAsrNote")}</span></div>`}`;
+    box.querySelectorAll("#lkSeg button").forEach((b) => b.onclick = () => { ytMode = b.dataset.m; paintOpts(); });
+    if (ytMode === "subs") ddBind("ytLangDd", L, (v) => { ytPref = v; });
+  };
   const submit = async () => {
     const inp = $("#ytUrl"); const urls = inp.value.split(/\s+/).filter(Boolean);
     if (!urls.length) { inp.focus(); return; }
     let bad = 0;
-    for (const u of urls) { const r = await api.add_youtube(u, ytPref); if (!r.ok) bad++; }
-    if (bad) toast(t("ytBad")); else inp.value = "";
+    for (const u of urls) { const r = await api.add_link(u, isYt(u) ? ytMode : "asr", ytPref); if (!r.ok) bad++; }
+    if (bad) toast(t("ytBad")); else { inp.value = ""; paintOpts(); }
   };
   $("#ytGo").onclick = submit;
   $("#ytUrl").onkeydown = (e) => { if (e.key === "Enter") submit(); };
+  $("#ytUrl").oninput = paintOpts;
+  paintOpts();
   $("#ytUrl").focus();
   renderYtJobs();
 }
@@ -1161,19 +1201,25 @@ function renderYtJobs() {
   const box = $("#ytJobsBox"); if (!box) return;
   const list = [...ytJobs.values()].sort((a, b) => b.id - a.id);
   if (!list.length) { box.innerHTML = ""; return; }
+  const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   box.innerHTML = `<h3>${t("queue")}</h3><div class="rows">` + list.map((j) => {
+    const asr = j.mode === "asr";
     const right = j.status === "wait" ? `<span class="tag gray">${t("ytWait")}</span>`
-      : j.status === "run" ? `<span class="tag blue">${t("ytRun")}…</span>`
+      : j.status === "fetch" ? `<span class="tag blue">${t("lkFetch")} ${j.progress != null ? j.progress + "%" : mmss(j.sec || 0)}</span>`
+      : j.status === "run" ? `<span class="tag blue">${asr ? `${t("lkRec")} ${j.progress || 0}%` : t("ytRun") + "…"}</span>`
       : j.status === "edit" ? `<span class="tag blue">${t("edEditing")} ${j.progress || 0}%</span>`
       : j.status === "done" ? `<span class="tag green">${t("ytDone")}</span>`
       : `<span class="tag red">${t("qErr")}</span>`;
-    const sub = j.status === "err" ? `<div class="err">${esc(t("err_" + (j.code || "other")))}${j.code === "network" || j.code === "other" ? ": " + esc(j.error || "") : ""}</div>`
+    const sub = j.status === "err"
+      ? `<div class="err">${esc(t("err_" + (j.code || "other")))}${j.code === "network" || j.code === "other" ? ": " + esc(j.error || "") : ""}</div>`
+        + (j.code === "nosubs" ? `<button class="btn secondary sm lkretry" data-url="${esc(j.url)}">${t("lkTryAsr")}</button>` : "")
       : (j.name !== j.url ? `<div class="sub">${esc(j.url)}</div>` : "");
     return `<div class="row ${j.status === "done" ? "click" : ""}" data-tid="${j.tid || ""}">
-      <span class="em">${j.status === "err" ? "⚠️" : "📺"}</span>
+      <span class="em">${j.status === "err" ? "⚠️" : asr ? "🔗" : "📺"}</span>
       <div style="flex:1;min-width:0"><div class="name">${esc(j.name)}</div>${sub}</div>${right}</div>`;
   }).join("") + "</div>";
   box.querySelectorAll(".row.click").forEach((el) => el.onclick = () => go("tr:" + el.dataset.tid));
+  box.querySelectorAll(".lkretry").forEach((b) => b.onclick = async (e) => { e.stopPropagation(); b.disabled = true; await api.add_link(b.dataset.url, "asr", ytPref); });
 }
 
 /* ---------- page: history ---------- */
