@@ -8,6 +8,7 @@ English goes to Whisper, everything else to GigaAM. Whisper itself tells the lan
 """
 import logging
 import os
+import re
 import shutil
 import subprocess
 import threading
@@ -167,9 +168,15 @@ class English:
         self.name = d.name
         log.info("Английская модель %s готова (%s, %s)", d.name, device, ct)
 
+    # what Whisper typically "hears" in silence, breathing or noise
+    HALLUCINATIONS = {"okay", "ok", "oh", "uh", "um", "hmm", "mm", "you", "bye", "yeah", "yes", "no", "so",
+                      "thank you", "thanks", "thank you very much", "thanks for watching",
+                      "thank you for watching", "please subscribe", "i'm sorry", "sorry", "the end"}
+
     def is_english(self, audio) -> bool:
-        """Russian vs English for one piece of speech. Very short pieces stay Russian."""
-        if len(audio) < int(core.SR * 1.2):
+        """Russian vs English for one piece of speech. Short pieces stay Russian: on a breath
+        or a short noise Whisper's language guess is unreliable."""
+        if len(audio) < int(core.SR * 2.0):
             return False
         try:
             _, _, probs = self.model.detect_language(audio=audio)
@@ -178,9 +185,21 @@ class English:
             return False
         p = dict(probs)
         en, ru = p.get("en", 0.0), p.get("ru", 0.0)
-        return en > 0.5 and en > ru * 2
+        return en > 0.7 and en > ru * 4
 
     def transcribe(self, audio) -> str:
-        segs, _ = self.model.transcribe(audio, language="en", beam_size=5, vad_filter=False,
+        """English text, or "" if Whisper only heard silence/noise (then GigaAM takes the piece)."""
+        segs, _ = self.model.transcribe(audio, language="en", beam_size=5, vad_filter=True,
+                                        vad_parameters={"min_silence_duration_ms": 500},
                                         condition_on_previous_text=False)
-        return " ".join(s.text.strip() for s in segs).strip()
+        parts = []
+        for s in segs:
+            if s.no_speech_prob > 0.5 or s.avg_logprob < -1.0 or s.compression_ratio > 2.4:
+                continue
+            parts.append(s.text.strip())
+        text = " ".join(p for p in parts if p).strip()
+        norm = re.sub(r"[^a-z' ]", "", text.lower()).strip()
+        if norm in self.HALLUCINATIONS and len(audio) < core.SR * 6:
+            log.info("Whisper: отброшено «%s» (похоже на шум)", text)
+            return ""
+        return text
