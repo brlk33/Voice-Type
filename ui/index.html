@@ -499,8 +499,9 @@ body.w-stack .segm { grid-template-columns: 1fr; }
 .dd:hover { background: var(--hover); }
 .dd.open { box-shadow: var(--blue) 0 0 0 1.5px inset; }
 .dd span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dd svg { color: var(--text-3); flex: none; transition: transform .15s ease; }
-.dd.open svg { transform: rotate(180deg); }
+.dd svg { color: var(--text-3); flex: none; }
+.dd > svg:last-child { transition: transform .15s ease; }
+.dd.open > svg:last-child { transform: rotate(180deg); }  /* only the chevron, not the source icon */
 .menu {
   position: fixed; z-index: 100; min-width: 200px; max-width: 340px; max-height: 320px; overflow-y: auto;
   background: var(--popover); border-radius: 12px; box-shadow: var(--shadow); padding: 6px;
