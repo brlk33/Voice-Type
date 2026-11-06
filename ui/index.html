@@ -169,51 +169,57 @@ aside {
 .tbtn.on { color: var(--blue); background: var(--blue-soft); }
 .tbtn svg { color: var(--text-2); }
 .tbtn.on svg { color: var(--blue); }
+.tbtn:disabled { opacity: .35; pointer-events: none; }
 
 .scroller { flex: 1; overflow-y: auto; min-height: 0; min-width: 0; }
 .mbody { flex: 1; min-height: 0; display: flex; position: relative; }
 .side { width: 0; flex: none; overflow: hidden; transition: width .22s cubic-bezier(.2,.8,.2,1); }
-.mbody.withside .side { width: 380px; }
-.sidein { width: 380px; height: 100%; display: flex; flex-direction: column; border-left: 1px solid var(--divider); background: var(--bg); }
-.sidehead { display: flex; align-items: center; gap: 2px; padding: 14px 10px 10px 20px; }
-.sidehead > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.sidehead b { font-size: 14px; font-weight: 600; }
-.sidehead small { color: var(--text-3); font-size: 12px; }
+.mbody.withside .side { width: var(--sidew); }
+body.side-over .side { position: absolute; right: 0; top: 0; bottom: 0; z-index: 6; }
+body.side-over .mbody.withside .side { box-shadow: -14px 0 36px rgba(0,0,0,.22); }
+body.side-over { --sidew: min(340px, calc(var(--vw) - 120px)); }
+:root { --vw: 100vw; --vh: 100vh; --sidew: clamp(260px, calc(var(--vw) * .28), 380px); }
+.sidein { width: var(--sidew); height: 100%; display: flex; flex-direction: column; border-left: 1px solid var(--divider); background: var(--bg); }
+.sidehead { display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 6px; row-gap: 0; padding: 12px 10px 8px 20px; }
+.sidehead b { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.sidebtns { display: flex; gap: 0; }
+.sidebtns .tbtn.icon { width: 30px; height: 30px; }
+.sidehead small { grid-column: 1 / -1; color: var(--text-3); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sidebody { flex: 1; overflow-y: auto; padding: 4px 20px 24px; }
 .sidebody .doc { font-size: 14.5px; line-height: 1.65; }
 .sidebody .doc p { margin: 0 0 12px; }
 .sidebody .none { color: var(--text-3); font-size: 13px; line-height: 1.6; }
 #liveBtn { position: relative; }
 #liveBtn.dot::after { content: ""; position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--blue); box-shadow: 0 0 0 2px var(--bg); }
-@media (max-width: 1080px) { .mbody.withside .side, .sidein { width: 300px; } }
+/* ===== Responsive rules =====
+   Show/hide decisions depend only on the WINDOW size (and whether the live panel is open), never
+   on the size of a card: once something hides while the window shrinks, it stays hidden.
+   Sizes in between change fluidly. */
 /* narrow window: the left column folds into an icon rail so the page keeps its room */
-@media (max-width: 940px) {
-  .layout { grid-template-columns: 64px 1fr; }
-  aside .ws { justify-content: center; padding: 0; margin: 10px 8px 12px; }
-  aside .ws > div:not(.wicon) { display: none; }
-  .nav { padding: 0 8px; }
-  .nav .item { justify-content: center; padding: 0; height: 40px; position: relative; }
-  .nav .item .lbl { display: none; }
-  .nav .item .live { position: absolute; top: 7px; right: 9px; margin: 0; }
-  .nav .item .live b { display: none; }
-  .navsep { margin: 9px 8px; }
-  aside .section, aside .trlist, aside .dcard, aside .upcard { display: none !important; }
-  aside .ws .wicon { position: relative; }
-  aside .ws[data-s] .wicon::after { content: ""; position: absolute; right: -2px; bottom: -2px; width: 9px; height: 9px; border-radius: 50%; background: var(--text-3); box-shadow: 0 0 0 2px var(--sidebar); }
-  aside .ws[data-s=ready] .wicon::after { background: #4dab9a; }
-  aside .ws[data-s=rec] .wicon::after { background: var(--red); }
-  aside .ws[data-s=busy] .wicon::after, aside .ws[data-s=loading] .wicon::after { background: #ffa344; }
-}
-.scroller { container: view / inline-size; }
-.page { max-width: 1000px; width: calc(100% - 160px); margin: 0 auto; padding: 0 0 140px; }
-@container view (max-width: 960px) { .page { width: calc(100% - 80px); } }
-@container view (max-width: 620px) {
-  .page { width: calc(100% - 40px); }
-  .picon { font-size: 48px; height: 56px; margin-top: 32px; }
-  h1 { font-size: 32px; }
-  .desc { font-size: 15px; margin-bottom: 24px; }
-}
-.picon { font-size: 64px; line-height: 1.1; margin-top: 56px; height: 72px; }
+/* body.rail is set by script from the window width (see fitWindow) */
+body.rail .layout { grid-template-columns: 64px 1fr; }
+body.rail aside .ws { justify-content: center; padding: 0; margin: 10px 8px 12px; }
+body.rail aside .ws > div:not(.wicon) { display: none; }
+body.rail .nav { padding: 0 8px; }
+body.rail .nav .item { justify-content: center; padding: 0; height: 40px; position: relative; }
+body.rail .nav .item .lbl { display: none; }
+body.rail .nav .item .live { position: absolute; top: 7px; right: 9px; margin: 0; }
+body.rail .nav .item .live b { display: none; }
+body.rail .navsep { margin: 9px 8px; }
+body.rail aside .section, body.rail aside .trlist, body.rail aside .dcard, body.rail aside .upcard { display: none !important; }
+body.rail aside .ws .wicon { position: relative; }
+body.rail aside .ws[data-s] .wicon::after { content: ""; position: absolute; right: -2px; bottom: -2px; width: 9px; height: 9px; border-radius: 50%; background: var(--text-3); box-shadow: 0 0 0 2px var(--sidebar); }
+body.rail aside .ws[data-s=ready] .wicon::after { background: #4dab9a; }
+body.rail aside .ws[data-s=rec] .wicon::after { background: var(--red); }
+body.rail aside .ws[data-s=busy] .wicon::after, body.rail aside .ws[data-s=loading] .wicon::after { background: #ffa344; }
+.page { max-width: 1000px; width: calc(100% - clamp(40px, 12%, 160px)); margin: 0 auto; padding: 0 0 clamp(48px, calc(var(--vh) * 0.1), 140px); }
+.picon { font-size: 64px; line-height: 1.1; margin-top: 56px; height: 72px; overflow: hidden;
+  transition: height .25s ease, margin .25s ease, opacity .2s ease, font-size .25s ease; }
+.desc { max-height: 140px; overflow: hidden; transition: max-height .25s ease, margin .25s ease, opacity .2s ease; }
+h1 { transition: margin .25s ease; }
+/* low window: page icon goes first, then the description */
+body.h-noicon .picon { height: 0; margin-top: 20px; opacity: 0; font-size: 0; }
+body.h-nodesc .desc { max-height: 0; margin-bottom: 16px; opacity: 0; } body.h-nodesc h1 { margin-top: 4px; }
 h1 {
   font-size: 40px; font-weight: 700; line-height: 1.2; margin: 14px 0 6px; padding: 3px 2px;
   outline: none; word-break: break-word; letter-spacing: -.015em; border-radius: 8px;
@@ -222,7 +228,7 @@ h1[contenteditable=true] { cursor: text; user-select: text; transition: backgrou
 h1[contenteditable=true]:hover { background: var(--hover); }
 h1[contenteditable=true]:focus { background: transparent; }
 h1[contenteditable=true]:empty::before { content: attr(data-ph); color: var(--text-3); }
-.desc { color: var(--text-2); font-size: 16px; margin: 6px 2px 32px; line-height: 1.6; }
+.desc { color: var(--text-2); font-size: 16px; margin: 6px 2px clamp(20px, calc(var(--vh) * 0.035), 32px); line-height: 1.6; }
 h3 { font-size: 13px; font-weight: 600; margin: 40px 0 12px 4px; color: var(--text-2); letter-spacing: .01em; }
 
 .btn {
@@ -241,11 +247,14 @@ h3 { font-size: 13px; font-weight: 600; margin: 40px 0 12px 4px; color: var(--te
 /* drop zone */
 .drop {
   border: 1.5px dashed var(--border); border-radius: 16px; padding: 40px 28px; text-align: center;
-  min-height: clamp(220px, 36vh, 460px); display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: clamp(110px, calc(var(--vh) - 380px), 460px); display: flex; flex-direction: column; align-items: center; justify-content: center;
   transition: background .15s ease, border-color .15s ease, transform .15s ease; background: var(--card);
 }
 .drop.over { background: var(--blue-soft); border-color: var(--blue); transform: scale(1.005); }
-.drop .big { font-size: 36px; line-height: 1; margin-bottom: 16px; }
+.drop .big { font-size: 36px; line-height: 1; margin-bottom: 16px; max-height: 40px; overflow: hidden; transition: max-height .25s, margin .25s, opacity .2s; }
+.drop .t2 { max-height: 80px; overflow: hidden; transition: max-height .25s, margin .25s, opacity .2s; }
+body.h-drop2 .drop .t2 { max-height: 0; opacity: 0; margin-bottom: 14px; }
+body.h-drop1 .drop .big { max-height: 0; opacity: 0; margin-bottom: 0; }
 .drop .t1 { font-size: 17px; font-weight: 600; margin-bottom: 4px; }
 .drop .t2 { color: var(--text-2); margin-bottom: 22px; }
 .drop.compact { padding: 18px 20px; display: flex; flex-direction: row; align-items: center; gap: 14px; text-align: left; min-height: 0; }
@@ -334,25 +343,38 @@ h3 { font-size: 13px; font-weight: 600; margin: 40px 0 12px 4px; color: var(--te
 
 
 /* recorder */
-.recbox { border-radius: 20px; background: var(--card); box-shadow: var(--divider) 0 0 0 1px inset; padding: 22px 24px 26px; container: recbox / inline-size; }
+.recbox { border-radius: 20px; background: var(--card); box-shadow: var(--divider) 0 0 0 1px inset; padding: clamp(16px, calc(var(--vh) * 0.026), 22px) clamp(16px, calc(var(--vw) * 0.02), 24px) clamp(18px, calc(var(--vh) * 0.03), 26px); }
 .rechead { display: flex; align-items: center; gap: 14px; min-height: 40px; }
 .rstate b { font-weight: 500; }
-@container recbox (max-width: 560px) {
-  .srcpick > span { display: none; }                          /* «Source» label */
-  .rstate { padding: 0; width: 30px; justify-content: center; } /* status: only the dot */
-  .rstate b { display: none; }
-  .timer { font-size: 34px; }
-}
-@container recbox (max-width: 400px) {
-  .rechead { flex-wrap: wrap; row-gap: 12px; }
-  .srcpick { margin-left: 0; order: 3; flex-basis: 100%; }
-  .srcpick .dd { max-width: none; flex: 1; }
-  .controls { gap: 16px; }
-  .wave { height: 100px; }
-}
+.srcpick .dd .ico { display: grid; place-items: center; color: var(--text-2); flex: none; }
+/* the live panel takes ~300 px: below 1100 px of window the recorder header goes compact
+   (source = icon only, status = dot only, smaller timer) and stays compact for any smaller window */
+body.rec-compact .srcpick .dd > span { display: none; }
+body.rec-compact .srcpick .dd { padding: 0 8px 0 10px; gap: 4px; }
+body.rec-compact .rstate { padding: 0; width: 30px; justify-content: center; }
+body.rec-compact .rstate b { display: none; }
+body.rec-compact .timer { font-size: 34px; }
+body.rec-compact .controls { gap: 18px; }
+.rnotes { max-height: 120px; overflow: hidden; transition: max-height .25s, opacity .2s, margin .25s; }
+body.h-nonotes .rnotes { max-height: 0; opacity: 0; margin-top: 0; }
+.page > h1 { max-height: 200px; overflow: hidden; transition: max-height .25s, margin .25s, opacity .2s, padding .25s; }
+body.h-notitle .page > h1:not(#trTitle) { max-height: 0; margin: 0; padding: 0; opacity: 0; }
+body.h-notitle .picon { margin-top: 12px; }
+.ctl > span { max-height: 20px; overflow: hidden; transition: max-height .2s, opacity .2s; }
+body.h-nolabels .ctl > span { max-height: 0; opacity: 0; }
+body.h-nolabels .ctl { gap: 0; }
+body.w-stack .srow { flex-wrap: wrap; gap: 10px 20px; }
+body.w-stack .srow .sl { flex-basis: 100%; }
+body.w-stack .srow > .dd, body.w-stack .srow > .msbtns, body.w-stack .srow > .btn { margin-left: auto; max-width: 100%; }
+body.w-stack .ytrow { flex-wrap: wrap; }
+body.w-stack .ytrow .ytin { flex-basis: 100%; }
+body.w-stack .ytrow .btn { flex: 1; justify-content: center; }
+body.w-stack .ytopts { flex-wrap: wrap; row-gap: 8px; }
+body.w-stack .ytopts .sp { display: none; }
+body.w-stack .segm { grid-template-columns: 1fr; }
 .timer { font-size: 40px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1; color: var(--text-3); transition: color .2s; }
 .recbox.live .timer { color: var(--text); }
-.srcpick { margin-left: auto; display: flex; align-items: center; gap: 10px; color: var(--text-3); font-size: 13px; }
+.srcpick { margin-left: auto; display: flex; align-items: center; gap: 10px; color: var(--text-3); font-size: 13px; min-width: 0; }
 .srcpick .dd { max-width: 260px; }
 .srcpick .dd[disabled] { opacity: .55; pointer-events: none; }
 .rstate { white-space: nowrap; flex: none; display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 13px; border-radius: 15px; font-size: 13px; font-weight: 500; background: var(--hover); color: var(--text-2); margin-left: auto; }
@@ -363,7 +385,7 @@ h3 { font-size: 13px; font-weight: 600; margin: 40px 0 12px 4px; color: var(--te
 .rstate.paused i { background: #ffa344; }
 .rstate.finishing { background: var(--blue-soft); color: var(--blue); }
 .rstate.finishing i { background: var(--blue); animation: blink 1.1s infinite; }
-.wave { position: relative; height: 120px; margin: 20px 0 24px; border-radius: 14px; background: var(--bg); overflow: hidden; }
+.wave { position: relative; height: clamp(56px, calc(var(--vh) - 560px), 150px); margin: clamp(12px, calc(var(--vh) * 0.024), 20px) 0 clamp(14px, calc(var(--vh) * 0.028), 24px); border-radius: 14px; background: var(--bg); overflow: hidden; }
 .wave canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .wave .ph { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-3); font-size: 13px; }
 .controls { display: flex; align-items: flex-start; justify-content: center; gap: 28px; }
@@ -550,9 +572,14 @@ kbd { font: inherit; font-size: 11.5px; padding: 1px 6px; border-radius: 6px; ba
       <aside class="side" id="side">
         <div class="sidein">
           <div class="sidehead">
-            <div><b id="sideTitle"></b><small id="sideSub"></small></div>
-            <button class="tbtn icon" id="sideCopy"></button>
-            <button class="tbtn icon" id="sideClose"></button>
+            <b id="sideTitle"></b>
+            <div class="sidebtns">
+              <button class="tbtn icon" id="sideTs"></button>
+              <button class="tbtn icon" id="sideFlow"></button>
+              <button class="tbtn icon" id="sideCopy"></button>
+              <button class="tbtn icon" id="sideClose"></button>
+            </div>
+            <small id="sideSub"></small>
           </div>
           <div class="sidebody" id="sideBody"><div class="doc" id="recLive"></div></div>
         </div>
@@ -618,8 +645,10 @@ const I18N = {
     recIdle: "Готово к записи", recRec: "Идёт запись", recPaused: "Пауза", recFinishing: "Дописываю текст…",
     recStart: "Начать", recPause: "Пауза", recResume: "Продолжить", recStop: "Завершить", recCancel: "Удалить",
     recCancelQ: "Удалить эту запись вместе с аудио?", recWaveIdle: "Здесь появится аудиоволна",
-    recLive: "Текст по ходу записи", recLag: "появляется с задержкой примерно 20 секунд",
+    recLive: "Текст записи", recLag: "появляется с задержкой ~20 с",
     recLiveIdle: "Начните запись — здесь будет появляться распознанный текст.", copyAll: "Скопировать всё", close: "Закрыть",
+    liveTsShow: "Показать тайм-коды", liveTsHide: "Скрыть тайм-коды", liveTsOffFlow: "В сплошном тексте тайм-кодов нет",
+    liveToFlow: "Сплошной текст", liveToParas: "Разбить на абзацы",
     recNoModel: "Модель ещё загружается, подождите пару секунд.", recMicErr: "Не удалось открыть микрофон",
     recNote: "Во время записи диктовка по клавише выключена. Окно можно свернуть — в углу экрана останется мини-плеер.",
     recEmpty: "Начните говорить — первые абзацы появятся здесь.",
@@ -727,8 +756,10 @@ const I18N = {
     recIdle: "Ready to record", recRec: "Recording", recPaused: "Paused", recFinishing: "Finishing the text…",
     recStart: "Start", recPause: "Pause", recResume: "Resume", recStop: "Finish", recCancel: "Delete",
     recCancelQ: "Delete this recording and its audio?", recWaveIdle: "The waveform will appear here",
-    recLive: "Live text", recLag: "appears with a delay of about 20 seconds",
+    recLive: "Live text", recLag: "appears with a ~20 s delay",
     recLiveIdle: "Start recording — the recognized text will appear here.", copyAll: "Copy all", close: "Close",
+    liveTsShow: "Show timestamps", liveTsHide: "Hide timestamps", liveTsOffFlow: "No timestamps in continuous text",
+    liveToFlow: "Continuous text", liveToParas: "Split into paragraphs",
     recNoModel: "The model is still loading, wait a couple of seconds.", recMicErr: "Couldn't open the microphone",
     recNote: "The dictation key is off while recording. You can minimize the window — a mini player stays in the corner of the screen.",
     recEmpty: "Start talking — the first paragraphs will appear here.",
@@ -791,6 +822,11 @@ const t = (k) => (I18N[LANG][k] ?? I18N.ru[k] ?? k);
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
 const IC = {
+  mic: '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="5.5" y="1.5" width="5" height="8.5" rx="2.5"/><path d="M3 8a5 5 0 0 0 10 0M8 13v1.5"/></svg>',
+  speaker: '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6v4h2.5l3.5 3V3L5 6z"/><path d="M11 5.5a3.5 3.5 0 0 1 0 5M12.8 3.5a6.3 6.3 0 0 1 0 9"/></svg>',
+  both: '<svg width="17" height="15" viewBox="0 0 18 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="4.4" height="7.5" rx="2.2"/><path d="M1 7.5a3.2 3.2 0 0 0 6.4 0M4.2 11v2"/><path d="M10 6.2v3.6h2l2.8 2.4V3.8L12 6.2z"/></svg>',
+  flow: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2.5 4h11M2.5 7h11M2.5 10h11M2.5 13h7"/></svg>',
+  paras: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2.5 3h11M2.5 5.5h8M2.5 10h11M2.5 12.5h6"/></svg>',
   panel: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.5" y="2.5" width="13" height="11" rx="2.2"/><path d="M10 2.8v10.4"/></svg>',
   info: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="8" cy="8" r="6.3"/><path d="M8 7.3v3.6M8 5.1v.1"/></svg>',
   copy: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V3.5a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2"/></svg>',
@@ -882,10 +918,44 @@ function paintSideHead() {
   const c = $("#sideCopy"), x = $("#sideClose");
   c.innerHTML = IC.copy; c.title = t("copyAll");
   x.innerHTML = IC.x; x.title = t("close");
-  c.onclick = () => { if (!rec.segs.length) return; api.copy_text(rec.segs.map((s) => s.text).join("\n\n")); toast(t("copied")); };
+  c.onclick = () => { if (!rec.segs.length) return; api.copy_text(liveText()); toast(t("copied")); };
+  const tsb = $("#sideTs"), fl = $("#sideFlow");
+  const paint = () => {
+    const flow = settings.live_flow === true, showT = settings.live_ts !== false;
+    tsb.innerHTML = IC.clock; tsb.classList.toggle("on", showT && !flow); tsb.disabled = flow;
+    tsb.title = flow ? t("liveTsOffFlow") : (showT ? t("liveTsHide") : t("liveTsShow"));
+    fl.innerHTML = flow ? IC.flow : IC.paras; fl.classList.toggle("on", flow);
+    fl.title = flow ? t("liveToParas") : t("liveToFlow");
+  };
+  tsb.onclick = () => { settings.live_ts = settings.live_ts === false; api.save_settings({live_ts: settings.live_ts}); paint(); renderLive(); };
+  fl.onclick = () => { settings.live_flow = settings.live_flow !== true; api.save_settings({live_flow: settings.live_flow}); paint(); renderLive(); };
+  paint();
   x.onclick = () => setSide(false, true);
 }
+/* Window-size decisions that CSS can't express on its own (they also depend on the live panel). */
+function fitWindow() {
+  const z = ZOOM || 1, w = window.innerWidth / z, h = window.innerHeight / z;
+  const b = document.body, side = b.classList.contains("side-open"), r = document.documentElement.style;
+  r.setProperty("--vw", w + "px"); r.setProperty("--vh", h + "px");
+  const over = w < 780;                                          // too narrow to share: panel slides over the page
+  if (over && !b.classList.contains("side-over") && side && !sideByHand) setSide(false);  // don't cover the page by itself
+  b.classList.toggle("side-over", over);
+  const sideTakes = side && w >= 780;
+  b.classList.toggle("rail", w < 940 || (sideTakes && w < 1100)); // left column -> icon rail
+  const sideWanted = side || settings.live_panel === true;       // also while auto-hidden in a narrow window
+  b.classList.toggle("rec-compact", w < 720 || (sideWanted && w < 1100)); // recorder header: icons only
+  b.classList.toggle("w-stack", w < 600);                        // very narrow: rows stack (label above control)
+  b.classList.toggle("h-noicon", h < 820);                      // low window: page icon goes
+  b.classList.toggle("h-nodesc", h < 700);                      // then the description
+  b.classList.toggle("h-nonotes", h < 640);                     // then the hints under the recorder
+  b.classList.toggle("h-drop2", h < 680);                       // drop zone: details, then the icon
+  b.classList.toggle("h-drop1", h < 600);
+  b.classList.toggle("h-notitle", h < 480);                     // very low: the page title too
+  b.classList.toggle("h-nolabels", h < 420);                    // and the captions under the buttons
+}
+window.addEventListener("resize", fitWindow);
 function applyLang() {
+  fitWindow();
   LANG = settings.ui_lang === "en" ? "en" : "ru";
   paintSideHead();
   // tooltips for the icon rail of a narrow window
@@ -905,7 +975,7 @@ function applyLang() {
 document.querySelectorAll(".nav .item").forEach((el) => el.onclick = () => go(el.dataset.page));
 function go(p) {
   page = p; $("#scroller").scrollTop = 0;
-  if (p !== "record") $("#mbody").classList.remove("withside");  // the live panel belongs to the record page
+  if (p !== "record") { $("#mbody").classList.remove("withside"); document.body.classList.remove("side-open"); fitWindow(); }  // the live panel belongs to the record page
   renderPage();
 }
 function markNav() {
@@ -913,6 +983,7 @@ function markNav() {
   document.querySelectorAll("#trlist .item").forEach((el) => el.classList.toggle("on", "tr:" + el.dataset.id === page));
 }
 function crumbs(parts) {
+  if (!page.startsWith("tr:")) { $("#crumbs").innerHTML = ""; return; }
   $("#crumbs").innerHTML = parts.map((p, i) =>
     `${i ? '<span class="sep">/</span>' : ""}<div class="crumb ${p.go ? "link" : ""}" ${p.go ? `data-go="${p.go}"` : ""}>${p.em ? `<span>${p.em}</span>` : ""}<span>${esc(p.text)}</span></div>`).join("");
   $("#crumbs").querySelectorAll("[data-go]").forEach((el) => el.onclick = () => go(el.dataset.go));
@@ -1159,10 +1230,18 @@ function confirmInline(btn) {
   return false;
 }
 /* Live text of the recording: in a panel that slides in from the right (toggle in the top bar). */
+function liveText() {
+  if (settings.live_flow === true) return rec.segs.map((s) => s.text).join(" ");
+  return rec.segs.map((s) => (settings.live_ts !== false ? `[${ts(s.t)}] ` : "") + s.text).join("\n\n");
+}
 let liveSeen = 0;
 const sideOpen = () => $("#mbody").classList.contains("withside");
+let sideByHand = false;  // opened by a click while the window is narrow -> stays as an overlay
 function setSide(open, save) {
+  if (open && !save && window.innerWidth / (ZOOM || 1) < 780) return;  // narrow: open only by a click
+  sideByHand = !!(open && save && window.innerWidth / (ZOOM || 1) < 780);
   $("#mbody").classList.toggle("withside", !!open);
+  document.body.classList.toggle("side-open", !!open); fitWindow();
   const b = $("#liveBtn"); if (b) b.classList.toggle("on", !!open);
   if (open) { liveSeen = rec.segs.length; if (b) b.classList.remove("dot"); renderLive(); }
   if (save) { settings.live_panel = !!open; api.save_settings({live_panel: !!open}); }
@@ -1175,7 +1254,8 @@ function renderLive(append) {
   if (!rec.segs.length) { box.innerHTML = `<p class="none">${rec.state === "idle" ? t("recLiveIdle") : t("recEmpty")}</p>`; return; }
   const sc = $("#sideBody");
   const atBottom = sc.scrollHeight - sc.scrollTop - sc.clientHeight < 80;
-  box.innerHTML = rec.segs.map((s) => `<p><span class="ts">${ts(s.t)}</span>${esc(s.text)}</p>`).join("");
+  if (settings.live_flow === true) box.innerHTML = `<p>${esc(liveText())}</p>`;
+  else box.innerHTML = rec.segs.map((s) => `<p>${settings.live_ts !== false ? `<span class="ts">${ts(s.t)}</span>` : ""}${esc(s.text)}</p>`).join("");
   if (append && atBottom) sc.scrollTop = sc.scrollHeight;
 }
 /* Waveform. Peaks arrive every ~100 ms in 50 ms bars; to keep it smooth the strip scrolls
@@ -1248,7 +1328,7 @@ async function pageRecord() {
       <div class="recbox" id="recBox">
         <div class="rechead">
           <div class="timer" id="recTimer">00:00:00</div>
-          <div class="srcpick" id="recSrcWrap"><span>${t("recSrc")}</span>${ddHtml("recSrcDd", recSources(), settings.rec_source || "mic")}</div>
+          <div class="srcpick" id="recSrcWrap">${ddHtml("recSrcDd", recSources(), settings.rec_source || "mic")}</div>
           <div class="rstate" id="recState"></div>
         </div>
         <div class="wave"><canvas id="recWave"></canvas><div class="ph" id="wavePh">${t("recWaveIdle")}</div></div>
@@ -1268,6 +1348,11 @@ function recSources() {
 }
 function paintSrc() {
   const dd = $("#recSrcDd"); if (!dd) return;
+  const v = settings.rec_source || "mic";
+  let ico = dd.querySelector(".ico");
+  if (!ico) { ico = document.createElement("i"); ico.className = "ico"; dd.prepend(ico); }
+  ico.innerHTML = {mic: IC.mic, system: IC.speaker, both: IC.both}[v] || IC.mic;
+  dd.title = (recSources().find((o) => o.v === v) || {}).label || "";
   if (rec.state === "idle") dd.removeAttribute("disabled"); else dd.setAttribute("disabled", "");
   $("#recSrcNote span").textContent = settings.rec_source === "both" ? t("srcBothD") : "";
   $("#recSrcNote").style.display = settings.rec_source === "both" ? "" : "none";
@@ -1824,6 +1909,7 @@ let ZOOM = 1;
 function applyZoom(z, save, quiet) {
   ZOOM = Math.min(1.6, Math.max(0.8, Math.round(z * 100) / 100));
   document.documentElement.style.zoom = ZOOM === 1 ? "" : String(ZOOM);
+  fitWindow();
   closeMenu && closeMenu();
   if (!quiet) toast(`${t("zoom")}: ${Math.round(ZOOM * 100)}%`);
   if (save && api) { settings.ui_zoom = ZOOM; api.save_settings({ui_zoom: ZOOM}); }

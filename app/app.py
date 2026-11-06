@@ -51,9 +51,10 @@ def message_box(text: str, title: str = "VoiceType"):
 
 
 def beep(freq: int):
+    """Soft chime instead of the system beep: high = start, low = stop."""
     if IS_WIN:
-        import winsound
-        threading.Thread(target=winsound.Beep, args=(freq, 70), daemon=True).start()
+        import sounds
+        sounds.play("start" if freq >= 800 else "stop")
 
 
 def make_icon(color):
@@ -575,6 +576,9 @@ class LongRecorder:
                    "duration": 0, "model": eng.rec.model_name, "segments": [], "recording": True}
         tr_save(self.tr)
         from audio_src import Capture
+        if eng.cfg.get("sounds", True):
+            import sounds
+            sounds.play("start", wait=True)  # before capture starts, so the chime isn't recorded
         src = eng.cfg.get("rec_source", "mic")
         self.tr["kind"] = {"mic": "mic", "system": "system", "both": "both"}.get(src, "mic")
         try:
@@ -592,12 +596,19 @@ class LongRecorder:
         log.info("Долгая запись: старт (без аудиофайла)")
         return {"ok": True, "tid": self.tr["id"]}
 
+    def _chime(self, kind):
+        if self.api._engine.cfg.get("sounds", True):
+            import sounds
+            sounds.play(kind)
+
     def pause(self):
         if self.state == "rec":
             self.state = "paused"
+            self._chime("pause")
 
     def resume(self):
         if self.state == "paused":
+            self._chime("pause")
             self.state = "rec"
 
     def stop(self):
@@ -605,6 +616,7 @@ class LongRecorder:
             return
         self.state = "finishing"
         self._close_input()
+        self._chime("stop")
         log.info("Долгая запись: стоп, %.1f с", self.total / core.SR)
 
     def cancel(self):
