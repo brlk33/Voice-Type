@@ -344,6 +344,18 @@ body.h-drop1 .drop .big { max-height: 0; opacity: 0; margin-bottom: 0; }
 
 /* recorder */
 .recbox { border-radius: 20px; background: var(--card); box-shadow: var(--divider) 0 0 0 1px inset; padding: clamp(16px, calc(var(--vh) * 0.026), 22px) clamp(16px, calc(var(--vw) * 0.02), 24px) clamp(18px, calc(var(--vh) * 0.03), 26px); }
+/* two faces of the recorder: a single calm row before recording, the full recorder while recording;
+   they swap with a smooth fold (grid rows 0fr <-> 1fr) */
+.fold { display: grid; grid-template-rows: 1fr; transition: grid-template-rows .36s cubic-bezier(.2,.8,.2,1), opacity .25s ease; }
+.foldin { min-height: 0; overflow: hidden; margin: -6px; padding: 6px; }   /* room for focus rings and shadows */
+.recbox.live .fold.fidle, .recbox:not(.live) .fold.flive { grid-template-rows: 0fr; opacity: 0; pointer-events: none; }
+.recidle { display: flex; align-items: center; gap: 16px; }
+.recidle .rbtn.big { width: 56px; height: 56px; flex: none; }
+.ritext { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.ritext b { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ritext small { color: var(--text-3); font-size: 12.5px; line-height: 1.45; }
+.recidle .srcpick { margin-left: 0; }
+body.w-stack .ritext small { display: none; }
 .rechead { display: flex; align-items: center; gap: 14px; min-height: 40px; }
 .rstate b { font-weight: 500; }
 .srcpick .dd .ico { display: grid; place-items: center; color: var(--text-2); flex: none; }
@@ -388,7 +400,6 @@ body.w-stack .segm { grid-template-columns: 1fr; }
 .wave { position: relative; height: clamp(56px, calc(var(--vh) - 560px), 150px); margin: clamp(12px, calc(var(--vh) * 0.024), 20px) 0 clamp(14px, calc(var(--vh) * 0.028), 24px); border-radius: 14px; background: var(--bg); overflow: hidden; }
 .wave { transition: height .32s cubic-bezier(.2,.8,.2,1), margin .32s cubic-bezier(.2,.8,.2,1), opacity .25s ease; }
 /* before a recording starts there is no waveform area at all: it unfolds on «Start» */
-.recbox:not(.live) .wave { height: 0; margin: 4px 0 18px; opacity: 0; }
 .wave canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .wave .ph { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-3); font-size: 13px; }
 .controls { display: flex; align-items: flex-start; justify-content: center; gap: 28px; }
@@ -645,10 +656,10 @@ const I18N = {
     example: "Пример", paras: "Абзацы по паузам", parasD: "Замолчали дольше заданного — текст начнётся с нового абзаца.",
     pause: "Пауза для нового абзаца", pShort: "Короткая · 0,8 с", pMid: "Средняя · 1,2 с", pLong: "Длинная · 2 с",
     styleNote: "Стиль и абзацы — для диктовки. Очистка речи работает везде: в диктовке, записи и файлах.",
-    navRecord: "Запись", recDesc: "Говорите сколько угодно — хоть час. Текст распознаётся прямо по ходу записи. Аудиофайл не сохраняется — остаётся только текст.",
+    navRecord: "Запись", recDesc: "Говорите сколько угодно — хоть час. Текст распознаётся прямо по ходу записи.",
     recIdle: "Готово к записи", recRec: "Идёт запись", recPaused: "Пауза", recFinishing: "Дописываю текст…",
     recStart: "Начать", recPause: "Пауза", recResume: "Продолжить", recStop: "Завершить", recCancel: "Удалить",
-    recCancelQ: "Удалить эту запись вместе с аудио?", recWaveIdle: "Здесь появится аудиоволна",
+    recCancelQ: "Удалить эту запись вместе с аудио?", recWaveIdle: "Здесь появится аудиоволна", recNew: "Новая запись", recNewD: "Аудио не сохраняется — только текст",
     recLive: "Текст записи", recLag: "появляется с задержкой ~20 с",
     recLiveIdle: "Начните запись — здесь будет появляться распознанный текст.", copyAll: "Скопировать всё", close: "Закрыть",
     liveTsShow: "Показать тайм-коды", liveTsHide: "Скрыть тайм-коды", liveTsOffFlow: "В сплошном тексте тайм-кодов нет",
@@ -756,10 +767,10 @@ const I18N = {
     example: "Example", paras: "Paragraphs on pauses", parasD: "Pause longer than set — the text continues in a new paragraph.",
     pause: "Pause for a new paragraph", pShort: "Short · 0.8 s", pMid: "Medium · 1.2 s", pLong: "Long · 2 s",
     styleNote: "Style and paragraphs apply to dictation. Speech cleanup works everywhere: dictation, recording and files.",
-    navRecord: "Record", recDesc: "Talk for as long as you like — even an hour. Text is recognized while you record. No audio file is kept — only the text.",
+    navRecord: "Record", recDesc: "Talk for as long as you like — even an hour. Text is recognized while you record.",
     recIdle: "Ready to record", recRec: "Recording", recPaused: "Paused", recFinishing: "Finishing the text…",
     recStart: "Start", recPause: "Pause", recResume: "Resume", recStop: "Finish", recCancel: "Delete",
-    recCancelQ: "Delete this recording and its audio?", recWaveIdle: "The waveform will appear here",
+    recCancelQ: "Delete this recording and its audio?", recWaveIdle: "The waveform will appear here", recNew: "New recording", recNewD: "No audio is kept — only the text",
     recLive: "Live text", recLag: "appears with a ~20 s delay",
     recLiveIdle: "Start recording — the recognized text will appear here.", copyAll: "Copy all", close: "Close",
     liveTsShow: "Show timestamps", liveTsHide: "Hide timestamps", liveTsOffFlow: "No timestamps in continuous text",
@@ -1189,7 +1200,7 @@ function paintRecHead() {
   const tm = $("#recTimer"); if (!tm) return;
   tm.textContent = clock(rec.elapsed);
   const idle = rec.state === "idle";
-  $("#recSrcWrap").style.display = idle ? "" : "none";
+  const ln = $("#recLiveNote"); if (ln) ln.style.display = idle ? "none" : "";
   const s = $("#recState");
   s.style.display = idle ? "none" : "";
   s.className = "rstate " + rec.state; s.innerHTML = `<i></i><b>${esc(stateLabel())}</b>`; s.title = stateLabel();
@@ -1202,7 +1213,7 @@ function paintControls() {
   const c = $("#recControls"); if (!c) return;
   paintSrc();
   if (rec.state === "idle") {
-    c.innerHTML = ctl("bStart", "big", ICR.rec, t("recStart"));
+    c.innerHTML = "";
     $("#bStart").onclick = async () => {
       const r = await api.rec_start();
       if (!r.ok) { toast(r.error === "model" ? t("recNoModel") : t("recMicErr") + (r.error ? ": " + r.error : "")); return; }
@@ -1330,17 +1341,25 @@ async function pageRecord() {
       <h1>${t("navRecord")}</h1>
       <div class="desc">${t("recDesc")}</div>
       <div class="recbox" id="recBox">
-        <div class="rechead">
-          <div class="timer" id="recTimer">00:00:00</div>
-          <div class="srcpick" id="recSrcWrap">${ddHtml("recSrcDd", recSources(), settings.rec_source || "mic")}</div>
-          <div class="rstate" id="recState"></div>
-        </div>
-        <div class="wave"><canvas id="recWave"></canvas></div>
-        <div class="controls" id="recControls"></div>
+        <div class="fold fidle"><div class="foldin">
+          <div class="recidle">
+            <button class="rbtn big" id="bStart" title="${esc(t("recStart"))}">${ICR.rec}</button>
+            <div class="ritext"><b>${t("recNew")}</b><small>${t("recNewD")}</small></div>
+            <div class="srcpick" id="recSrcWrap">${ddHtml("recSrcDd", recSources(), settings.rec_source || "mic")}</div>
+          </div>
+        </div></div>
+        <div class="fold flive"><div class="foldin">
+          <div class="rechead">
+            <div class="timer" id="recTimer">00:00:00</div>
+            <div class="rstate" id="recState"></div>
+          </div>
+          <div class="wave"><canvas id="recWave"></canvas></div>
+          <div class="controls" id="recControls"></div>
+        </div></div>
       </div>
       <div class="rnotes">
         <div class="rnote" id="recSrcNote">${IC.info}<span></span></div>
-        <div class="rnote">${IC.info}<span>${t("recNote")}</span></div>
+        <div class="rnote" id="recLiveNote">${IC.info}<span>${t("recNote")}</span></div>
       </div>
     </div>`;
   ddBind("recSrcDd", recSources(), async (v) => { settings.rec_source = v; await api.save_settings({rec_source: v}); paintSrc(); });
